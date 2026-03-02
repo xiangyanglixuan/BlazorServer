@@ -1,0 +1,286 @@
+﻿@* Components/Layout/TabBar.razor *@
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<nav class="tab-nav" aria-label="标签页导航">
+    <div class="tab-container">
+        @foreach (var tab in _tabs)
+        {
+            <div class="@GetTabClass(tab)"
+                 @onclick="() => SwitchToTab(tab)"
+                 title="@tab.Title"
+                 role="tab"
+                 aria-selected="@tab.IsActive">
+
+                @if (!string.IsNullOrEmpty(tab.Icon))
+                {
+                    <i class="@tab.Icon" aria-hidden="true"></i>
+                }
+                <span>@tab.Title</span>
+
+                @if (tab.Url != "/")
+                {
+                    <i class="fas fa-times tab-close"
+                       @onclick:stopPropagation="true"
+                       @onclick="() => CloseTab(tab)"
+                       role="button"
+                       aria-label="关闭标签页"></i>
+                }
+            </div>
+        }
+    </div>
+</nav>
+
+@code {
+    private List<TabItem> _tabs = new();
+    private bool _isNavigating = false;
+    private const int MAX_TABS = 10; // 最大标签页数量
+    private readonly SemaphoreSlim _navigationLock = new(1, 1); // 使用信号量代替布尔标志
+
+    protected override void OnInitialized()
+    {
+        InitializeHomeTab();
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void InitializeHomeTab()
+    {
+        _tabs.Add(new TabItem
+        {
+            Title = "首页",
+            Url = "/",
+            Icon = "fas fa-home",
+            IsActive = true
+        });
+    }
+
+    private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // 使用信号量避免并发问题
+        if (!await _navigationLock.WaitAsync(0))
+            return;
+
+        try
+        {
+            await HandleLocationChanged(e.Location);
+        }
+        finally
+        {
+            _navigationLock.Release();
+        }
+    }
+
+    private async Task HandleLocationChanged(string location)
+    {
+        try
+        {
+            await AutoAddCurrentPageAsTab();
+            await InvokeAsync(StateHasChanged);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"处理路由变化时出错: {ex.Message}");
+        }
+    }
+
+    private string GetTabClass(TabItem tab)
+    {
+        var classes = "tab-item";
+        if (tab.IsActive) classes += " active";
+        return classes;
+    }
+
+    private async Task SwitchToTab(TabItem tab)
+    {
+        if (!await _navigationLock.WaitAsync(0))
+            return;
+
+        try
+        {
+            await HandleSwitchToTab(tab);
+        }
+        finally
+        {
+            _navigationLock.Release();
+        }
+    }
+
+    private async Task HandleSwitchToTab(TabItem tab)
+    {
+        // 如果已经是当前标签，不处理
+        if (tab.IsActive)
+            return;
+
+        // 更新激活状态
+        UpdateActiveTab(tab);
+
+        // 检查是否需要导航
+        var currentUrl = NavigationManager.Uri;
+        var targetUrl = NavigationManager.ToAbsoluteUri(tab.Url).ToString();
+
+        if (!currentUrl.Equals(targetUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            NavigationManager.NavigateTo(tab.Url);
+        }
+        else
+        {
+            // 如果在同一页面，只需要更新UI
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void UpdateActiveTab(TabItem activeTab)
+    {
+        foreach (var t in _tabs)
+        {
+            t.IsActive = t == activeTab;
+        }
+    }
+
+    private async Task CloseTab(TabItem tab)
+    {
+        if (tab.Url == "/" || _tabs.Count <= 1)
+            return;
+
+        var wasActive = tab.IsActive;
+        var tabIndex = _tabs.IndexOf(tab);
+
+        _tabs.Remove(tab);
+
+        if (wasActive && _tabs.Any())
+        {
+            // 激活前一个标签，如果没有则激活后一个
+            var nextTab = tabIndex > 0 ? _tabs[tabIndex - 1] : _tabs[0];
+            nextTab.IsActive = true;
+
+            await NavigateToTabIfNeeded(nextTab);
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task NavigateToTabIfNeeded(TabItem tab)
+    {
+        var currentUrl = NavigationManager.Uri;
+        var targetUrl = NavigationManager.ToAbsoluteUri(tab.Url).ToString();
+
+        if (!currentUrl.Equals(targetUrl, StringComparison.OrdinalIgnoreCase))
+        {
+            NavigationManager.NavigateTo(tab.Url);
+        }
+    }
+
+    private async Task AutoAddCurrentPageAsTab()
+    {
+        var currentUrl = NavigationManager.Uri;
+        var relativePath = NavigationManager.ToBaseRelativePath(currentUrl);
+
+        if (string.IsNullOrEmpty(relativePath))
+            return;
+
+        // 检查是否超过最大标签页数
+        if (_tabs.Count >= MAX_TABS)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"最多只能打开{MAX_TABS}个标签页");
+            return;
+        }
+
+        // 标准化URL路径
+        var normalizedPath = NormalizePath(relativePath);
+        var fullPath = "/" + normalizedPath;
+
+        // 检查是否已存在该标签
+        var existingTab = _tabs.FirstOrDefault(t =>
+            NormalizePath(t.Url).Equals(normalizedPath, StringComparison.OrdinalIgnoreCase));
+
+        if (existingTab != null)
+        {
+            UpdateActiveTab(existingTab);
+            return;
+        }
+
+        // 创建新标签
+        var tab = new TabItem
+        {
+            Title = GetPageTitle(normalizedPath),
+            Url = fullPath,
+            Icon = GetPageIcon(normalizedPath),
+            IsActive = true
+        };
+
+        UpdateActiveTab(tab);
+        _tabs.Add(tab);
+    }
+
+    private string NormalizePath(string path)
+    {
+        if (string.IsNullOrEmpty(path)) return "";
+        return path.TrimStart('/').ToLowerInvariant();
+    }
+
+    private string GetPageTitle(string path)
+    {
+        var normalizedPath = NormalizePath(path);
+
+        return normalizedPath switch
+        {
+            "location-monitoring" => "库位状态监测",
+            "location-analysis" => "库位统计分析",
+            "air-monitoring" => "空气参数监测",
+            "nutrient-monitoring" => "营养液监测",
+            "plant-category" => "植物类别管理",
+            "growth-formula" => "植物生长配方管理",
+            "inbound" => "入库管理",
+            "outbound" => "出库管理",
+            "alarm-management" => "设备报警管理",
+            "device-monitoring" => "设备状态监控",
+            "data-statistics" => "数据统计",
+            "" => "首页",
+            _ => FormatTitle(normalizedPath)
+        };
+    }
+
+    private string FormatTitle(string path)
+    {
+        // 将路径格式化为标题
+        return string.Join(" ", path.Split('-')
+            .Select(word => char.ToUpper(word[0]) + word.Substring(1)));
+    }
+
+    private string GetPageIcon(string path)
+    {
+        var normalizedPath = NormalizePath(path);
+
+        return normalizedPath switch
+        {
+            "location-monitoring" => "fas fa-circle-notch",
+            "location-analysis" => "fas fa-chart-bar",
+            "air-monitoring" => "fas fa-wind",
+            "nutrient-monitoring" => "fas fa-tint",
+            "plant-category" => "fas fa-leaf",
+            "growth-formula" => "fas fa-prescription-bottle",
+            "inbound" => "fas fa-sign-in-alt",
+            "outbound" => "fas fa-sign-out-alt",
+            "alarm-management" => "fas fa-exclamation-triangle",
+            "device-monitoring" => "fas fa-desktop",
+            "data-statistics" => "fas fa-chart-line",
+            "" => "fas fa-home",
+            _ => "fas fa-file"
+        };
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+        _navigationLock?.Dispose();
+    }
+
+    private class TabItem
+    {
+        public string Title { get; set; } = string.Empty;
+        public string Url { get; set; } = string.Empty;
+        public string Icon { get; set; } = string.Empty;
+        public bool IsActive { get; set; }
+    }
+}

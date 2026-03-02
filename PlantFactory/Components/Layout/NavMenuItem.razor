@@ -1,0 +1,73 @@
+﻿@* Components/Layout/NavMenuItem.razor *@
+@inherits ComponentBase
+
+<div class="nav-menu-item @(IsOpen ? "open" : "")"
+     @onmouseenter="OnMouseEnter"
+     @onmouseleave="OnMouseLeave">
+    <div class="nav-menu-header" @onclick="ToggleMenu" title="@Title">
+        <i class="@Icon"></i>
+        @if (!Collapsed)
+        {
+            <span class="nav-menu-title">@Title</span>
+            @if (ChildContent != null)
+            {
+                <i class="fas fa-chevron-@(IsOpen ? "up" : "down") nav-menu-arrow"></i>
+            }
+        }
+    </div>
+
+    @if ((IsOpen && !Collapsed) || (Collapsed && _isHovering))
+    { 
+        <div class="nav-submenu">
+            @ChildContent
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string Title { get; set; } = string.Empty;
+                                          
+    [Parameter]
+    public string Icon { get; set; } = string.Empty;
+
+    [Parameter]
+    public bool IsOpen { get; set; }
+
+    [Parameter]
+    public bool Collapsed { get; set; }
+
+    [Parameter]
+    public EventCallback OnToggle { get; set; }
+
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    private bool _isHovering = false;
+
+    private void OnMouseEnter()
+    {
+        if (Collapsed)
+        {
+            _isHovering = true;
+            StateHasChanged();
+        }
+    }
+
+    private void OnMouseLeave()
+    {
+        if (Collapsed)
+        {
+            _isHovering = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleMenu()
+    {
+        // 如果侧边栏收起，通过悬停显示子菜单，不处理点击
+        if (Collapsed) return;
+
+        await OnToggle.InvokeAsync();
+    }
+}

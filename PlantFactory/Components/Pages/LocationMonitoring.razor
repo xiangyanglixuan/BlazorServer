@@ -1,0 +1,276 @@
+﻿@page "/location-monitoring"
+
+@inject IJSRuntime JSRuntime
+
+<PageTitle>植物工厂监控系统 - 库位状态监测</PageTitle>
+<style>   
+    .el-header {
+        background-color: #B3C0D1;
+        color: #333;
+        text-align: center;
+        line-height: 25px;
+    }
+
+    .table-container {
+        width: 100%;
+        height: 125px; /* 设置容器的高度 */
+        overflow-y: auto; /* 超出部分可滚动 */
+    }
+
+    #data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        #data-table th, #data-table td {
+            padding: 8px;
+            text-align: center;
+            border: 1px solid #ddd;
+        }
+
+    thead th {
+        position: sticky;
+        top: 0; /* 固定在表格的顶部 */
+        background-color: #f2f2f2; /* 设置表头背景色 */
+        z-index: 1; /* 保证表头在其他内容上方 */
+        box-shadow: 0 1px 5px rgba(0, 0, 0, 0.1); /* 可选：添加阴影以增强视觉效果 */
+    }
+
+    #svg {
+        transform: scale(0.7) translate(-30px, -52px);
+        overflow: hidden;
+    }
+
+    .el-main {
+        overflow: hidden;
+    }
+
+    .car {
+        width: 5px;
+        height: 20px;
+        fill: gray;
+        stroke: black;
+        stroke-width: 1;
+        cursor: pointer;
+    }
+
+    .car-label {
+        font-size: 3px;
+        fill: white;
+        text-anchor: middle;
+        /* alignment-baseline: middle; */
+    }
+
+    .gk {
+        width: 18px;
+        height: 80px;
+        fill: gray;
+        stroke: black;
+        stroke-width: 1;
+        cursor: pointer;
+    }
+
+    .gk-label {
+        font-size: 10px;
+        fill: white;
+        text-anchor: middle;
+    }
+
+    .line {
+        fill: none;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .gbt {
+        fill: none;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .ng {
+        fill: none;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .nggbt {
+        fill: none;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .motor {
+        fill: transparent;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .collisionmotor {
+        fill: transparent;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .safetydoor {
+        fill: transparent;
+        stroke: gray;
+        stroke-width: 16;
+        cursor: pointer;
+    }
+
+    .blun {
+        fill: transparent;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .zhix {
+        fill: transparent;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .emg {
+        fill: transparent;
+        stroke: gray;
+        stroke-width: 10;
+        cursor: pointer;
+    }
+
+    .scan {
+        fill: transparent;
+        stroke: gray;
+        stroke-width: 14;
+        cursor: pointer;
+    }
+
+    .collisionmotor-label {
+        font-size: 8px;
+        text-anchor: middle;
+    }
+
+    .aconveyorline-label {
+        font-size: 6px;
+        text-anchor: middle;
+    }
+
+    .logindesk {
+        width: 18px;
+        height: 20px;
+        fill: none;
+        stroke: darkblue;
+        stroke-width: 1;
+    }
+
+    .logindesk-label {
+        font-size: 10px;
+        fill: darkblue;
+        text-anchor: middle;
+    }
+
+    .tooltip {
+        position: absolute;
+        display: none;
+        padding: 5px;
+        border-radius: 5px;
+        color: white;
+    }
+
+    .tooltip-right {
+        position: absolute;
+        top: 80px;
+        right: 100px;
+        width: 200px;
+        height: 50px;
+        display: inline-block;
+        background-color: rgba(0, 0, 0, 0.7); /* 设置背景颜色 */
+        transition: opacity 0.3s; /* 添加渐变效果 */
+        white-space: pre-wrap;
+    }
+
+</style>
+
+<div class="app">
+    <div class="el-container">
+        <div class="el-header">
+            <label style="font-size: 1.5625rem;">顔色參照：</label>
+            <label style="background-color: gray; font-size: 1.5rem">待機</label>
+            <label style="margin-left: 20px; background-color: black; color: white; font-size: 1.5rem">掉綫</label>
+            <label style="margin-left: 20px; background-color: red; font-size: 1.5rem">故障</label>
+            <label style="margin-left: 20px; background-color: yellow; font-size: 1.5rem">急停</label>
+            <label style="margin-left: 20px; background-color: blue; font-size: 1.5rem">鎖格</label>
+            <label style="margin-left: 20px; background-color: purple; font-size: 1.5rem">滿格</label>
+            <label style="margin-left: 20px; background-color: orange; font-size: 1.5rem">鎖車</label>
+            <label style="margin-left: 20px; background-color: green; font-size: 1.5rem">運行</label>
+            <label style="margin-left: 20px; background-color: pink; font-size: 1.5rem">休眠</label>
+            <label style="margin-left: 20px; background-color: cyan; font-size: 1.5rem">堵包</label>
+            <label style="margin-left: 20px; background-color: white; font-size: 1.5rem">本地</label>
+            <label style="margin-left: 20px; background-color: brown; font-size: 1.5rem">超邊</label>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>設備編號</th>
+                    <th>故障詳情</th>
+                    <th>設備狀態</th>
+                    <th>是否恢復</th>
+                    <th>報警時間</th>
+                </tr>
+            </thead>
+            <tbody>
+               
+            </tbody>
+        </table>
+    </div>
+
+    <div class="el-container">
+        <div class="el-main">
+            <div style="position: relative; width: 1920px; height: 580px;">
+                <svg id="svg" style="width: 1920px; height: 880px; transform-origin: 0 0;">
+                    <text id="myText" fill="black" font-size="20" display="none"></text>
+                    <path id="myPath"
+                          d="M500 400 L1300,400 A400,220 0 0 0 1400,330 A330,300 0 0 1 1480,260 L1750,260 A200,140 0 0 1 1810,300 L1810,700 A700,120 0 0 1 1730,760 L1400 760 A760,250 0 0 1 1350,680
+                          A780,500 0 0 0 1300,600 L500 600 A600,100 1 0 0 450,620 A620,250 0 0 1 400,660 L150,660 A150,50 0 0 1 100,620 L100,300 A100,100 0 0 1 150,200 L300,200 A150,400 0 0 1 400,300 A220,200 0 0 0 500,400"
+                          fill="none" stroke="black" stroke-width="1" />
+                    <path id="myPath1" d="M1276 370 L480 370" />
+                    <path id="myPath2" d="M500 640 L1320 640" />
+                    <path id="myPath3" d="M508 280 L1362 280" />
+                    <path id="myPath4" d="M488 720 L1432 720" />
+
+                    <text x="700px" y="500px" font-size="18px">小车占有率</text>
+                    <text id="TextBox1" x="800px" y="500px" font-size="18px"></text>
+                    <text x="850px" y="500px" font-size="18px">%</text>
+                </svg>
+            </div>
+            <div id="videodiv"></div>
+        </div>
+    </div>
+</div>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await Task.Delay(500);
+            var pathsCreated = await JSRuntime.InvokeAsync<bool>("createSvgPaths");
+            // 初始化 SVG
+            await JSRuntime.InvokeVoidAsync("initializeSvg");
+
+
+        }
+    }   
+}

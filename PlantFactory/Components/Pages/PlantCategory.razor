@@ -1,0 +1,168 @@
+﻿@page "/plant-category" 
+
+@using PlantFactory.Components.Models
+@using PlantFactory.Components.Services
+@inject PlantService PlantService
+
+
+<h3>植物类别管理</h3>
+
+@* @if (plants == null)
+{
+    <p>正在加载...</p>
+} *@
+
+    <button @onclick="ShowAddDialog" class="btn btn-primary mb-3">添加新植物</button>
+    
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>名称</th>
+                <th>类别</th>
+                <th>适宜温度</th>
+                <th>适宜湿度</th>
+                <th>生长阶段</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>1</td>
+            <td>生菜</td>
+            <td>种植物</td>
+            <td>20</td>
+            <td>20</td>
+            <td>幼苗期</td>
+            <td>
+                <button class="btn btn-sm btn-info">编辑</button>
+                <button class="btn btn-sm btn-danger">删除</button>
+            </td>
+        </tr>
+            @* @foreach (var plant in plants)
+            {
+                <tr>
+                    <td>@plant.Id</td>
+                    <td>@plant.Name</td>
+                    <td>@plant.Category</td>
+                    <td>@plant.OptimalTemperature.ToString("F1")°C</td>
+                    <td>@plant.OptimalHumidity.ToString("F0")%</td>
+                    <td>@plant.GrowthStage</td>
+                    <td>
+                        <button @onclick="() => EditPlant(plant)" class="btn btn-sm btn-info">编辑</button>
+                        <button @onclick="() => DeletePlant(plant.Id)" class="btn btn-sm btn-danger">删除</button>
+                    </td>
+                </tr>
+            } *@
+        </tbody>
+    </table>
+
+@* <!-- 添加/编辑对话框 --> *@
+@if (showDialog)
+{
+    <div class="modal show" style="display: block">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">@(currentPlant.Id == 0 ? "添加植物" : "编辑植物")</h5>
+                    <button type="button" class="btn-close" @onclick="CloseDialog"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">名称</label>
+                        <input @bind="currentPlant.Name" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">类别</label>
+                        <input @bind="currentPlant.Category" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">适宜温度(°C)</label>
+                        <input type="number" @bind="currentPlant.OptimalTemperature" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">适宜湿度(%)</label>
+                        <input type="number" @bind="currentPlant.OptimalHumidity" class="form-control" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">生长阶段</label>
+                        <select @bind="currentPlant.GrowthStage" class="form-control">
+                            <option value="">选择阶段</option>
+                            <option value="幼苗期">幼苗期</option>
+                            <option value="生长期">生长期</option>
+                            <option value="成熟期">成熟期</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button @onclick="SavePlant" class="btn btn-primary">保存</button>
+                    <button @onclick="CloseDialog" class="btn btn-secondary">取消</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    // private List<Plants> plants;
+    private Plants currentPlant = new Plants();
+    private bool showDialog = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadPlants();
+    }
+
+    private async Task LoadPlants()
+    {
+        // plants = await PlantService.GetAllPlantsAsync();
+    }
+
+    private void ShowAddDialog()
+    {
+        currentPlant = new Plants();
+        showDialog = true;
+    }
+
+    private void EditPlant(Plants plant)
+    {
+        currentPlant = new Plants
+        {
+            Id = plant.Id,
+            Name = plant.Name,
+            Category = plant.Category,
+            OptimalTemperature = plant.OptimalTemperature,
+            OptimalHumidity = plant.OptimalHumidity,
+            GrowthStage = plant.GrowthStage
+        };
+        showDialog = true;
+    }
+
+    private async Task DeletePlant(int id)
+    {
+        // if (await PlantService.DeletePlantAsync(id))
+        // {
+        //     await LoadPlants();
+        // }
+    }
+
+    private async Task SavePlant()
+    {
+        if (currentPlant.Id == 0)
+        {
+            await PlantService.AddPlantAsync(currentPlant);
+        }
+        else
+        {
+            await PlantService.UpdatePlantAsync(currentPlant);
+        }
+        
+        showDialog = false;
+        await LoadPlants();
+    }
+
+    private void CloseDialog()
+    {
+        showDialog = false;
+    }
+} 
