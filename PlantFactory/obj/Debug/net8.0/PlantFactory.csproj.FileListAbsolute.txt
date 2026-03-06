@@ -81,6 +81,7 @@ D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\PlantFac
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\PlantFactory.runtimeconfig.json
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\PlantFactory.dll
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\PlantFactory.pdb
+D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\Newtonsoft.Json.dll
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\System.Data.SqlClient.dll
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\runtimes\win-arm64\native\sni.dll
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\runtimes\win-x64\native\sni.dll
@@ -94,6 +95,7 @@ D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFac
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.AssemblyInfo.cs
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.csproj.CoreCompileInputs.cache
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.MvcApplicationPartsAssemblyInfo.cache
+D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.sourcelink.json
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\rjimswa.dswa.cache.json
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
@@ -113,4 +115,3 @@ D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\refint\P
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.pdb
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.genruntimeconfig.cache
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\ref\PlantFactory.dll
-D:\工作文件\植物工厂\PlantFactory\PlantFactory\bin\Debug\net8.0\Newtonsoft.Json.dll
