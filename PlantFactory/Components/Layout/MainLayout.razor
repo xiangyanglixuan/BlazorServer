@@ -1,5 +1,6 @@
 ﻿@* Components/Layout/MainLayout.razor *@
 @inherits LayoutComponentBase
+@inject NavigationManager Navigation
 @inject IJSRuntime JS
 <PageTitle>PlantFactory</PageTitle>
 
@@ -489,7 +490,7 @@
                 <!-- 用户信息 -->
                 <div class="user-info" @onclick="ToggleUserMenu">
                     <i class="fas fa-user-circle"></i>
-                    <span>管理员</span>
+                    <span>@_username</span>  <!-- 使用变量显示用户名 -->
                     <i class="fas fa-chevron-down user-menu-arrow"></i>
 
                     <!-- 用户下拉菜单 -->
@@ -500,10 +501,10 @@
                                 <i class="fas fa-user"></i>
                                 <span>个人中心</span>
                             </div>
-                            <div class="dropdown-item">
+                           @*  <div class="dropdown-item">
                                 <i class="fas fa-cog"></i>
                                 <span>系统设置</span>
-                            </div>
+                            </div> *@
                             <div class="dropdown-divider"></div>
                             <div class="dropdown-item" @onclick="Logout">
                                 <i class="fas fa-sign-out-alt"></i>
@@ -527,14 +528,79 @@
 @code {
     private bool _sidebarCollapsed = false;
     private bool _showUserMenu = false;
+    private bool _isChecking = true; // 添加检查状态
+    private string _username = "管理员";
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // 检查是否已登录
+            var isLoggedIn = await CheckLoginStatus();
+
+            // 获取当前路径
+            var currentUri = Navigation.Uri;
+            var baseUri = Navigation.BaseUri;
+            var isLoginPage = currentUri.Contains("/login");
+
+            if (!isLoggedIn && !isLoginPage)
+            {
+                // 未登录且不在登录页，跳转到登录页
+                Navigation.NavigateTo("/login", false);
+                return;
+            }
+
+            if (isLoggedIn)
+            {
+                // 获取用户名
+                _username = await GetUsername();
+            }
+        }
+        finally
+        {
+            _isChecking = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<bool> CheckLoginStatus()
+    {
+        try
+        {
+            var localLogin = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
+            if (localLogin == "true")
+                return true;
+
+            var sessionLogin = await JS.InvokeAsync<string>("sessionStorage.getItem", "isLoggedIn");
+            return sessionLogin == "true";
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async Task<string> GetUsername()
+    {
+        try
+        {
+            var username = await JS.InvokeAsync<string>("localStorage.getItem", "username");
+            if (string.IsNullOrEmpty(username))
+            {
+                username = await JS.InvokeAsync<string>("sessionStorage.getItem", "username");
+            }
+            return username ?? "管理员";
+        }
+        catch
+        {
+            return "管理员";
+        }
+    }
 
     private void ToggleSidebar()
     {
         _sidebarCollapsed = !_sidebarCollapsed;
-        StateHasChanged(); // 通知组件重新渲染
-
-        // 保存状态到本地存储
-        // SaveSidebarState();
+        StateHasChanged();
     }
 
     private void ToggleUserMenu()
@@ -550,46 +616,30 @@
     private async Task Logout()
     {
         _showUserMenu = false;
-        // 这里添加退出登录逻辑
-        // await NavigationManager.NavigateTo("/login");
+
+        try
+        {
+            // 清除所有登录状态
+            await JS.InvokeVoidAsync("localStorage.removeItem", "isLoggedIn");
+            await JS.InvokeVoidAsync("localStorage.removeItem", "username");
+            await JS.InvokeVoidAsync("sessionStorage.removeItem", "isLoggedIn");
+            await JS.InvokeVoidAsync("sessionStorage.removeItem", "username");
+
+            // 跳转到登录页
+            Navigation.NavigateTo("/login", true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"登出失败：{ex.Message}");
+        }
     }
 
-    // 保存侧边栏状态到本地存储
-    // private async Task SaveSidebarState()
-    // {
-    //     try
-    //     {
-    //         // 使用浏览器本地存储
-    //         await JS.InvokeVoidAsync("localStorage.setItem", "sidebarCollapsed", _sidebarCollapsed.ToString().ToLower());
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"保存侧边栏状态失败: {ex.Message}");
-    //     }
-    // }
-
-    // 从本地存储加载侧边栏状态
-    // protected override async Task OnInitializedAsync()
-    // {
-    //     // _sidebarCollapsed = false;
-    //     // await LoadSidebarState();
-    // }
-
-    // private async Task LoadSidebarState()
-    // {
-    //     try
-    //     {
-    //         var savedState = await JS.InvokeAsync<string>("localStorage.getItem", "sidebarCollapsed");
-    //         if (!string.IsNullOrEmpty(savedState))
-    //         {
-    //             _sidebarCollapsed = savedState.ToLower() == "true";
-    //             StateHasChanged();
-    //         }
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         Console.WriteLine($"加载侧边栏状态失败: {ex.Message}");
-    //     }
-    // }
-
+    // 点击其他地方关闭用户菜单
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // 可以添加点击外部关闭菜单的JS交互
+        }
+    }
 }

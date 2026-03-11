@@ -1,6 +1,73 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
+       <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+            <NotAuthorized>
+                @{
+                    Navigation.NavigateTo("/login", true);
+                }
+            </NotAuthorized>
+            <Authorizing>
+                <div class="loading-container">
+                    <div class="loading-spinner"></div>
+                    <p>正在验证登录状态...</p>
+                </div>
+            </Authorizing>
+        </AuthorizeRouteView>
+        
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <PageTitle>Not found</PageTitle>
+        <LayoutView Layout="@typeof(MainLayout)">
+            <p role="alert">Sorry, there's nothing at this address.</p>
+        </LayoutView>
+    </NotFound>
 </Router>
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        // 检查当前路径，如果是根路径，检查登录状态
+        var uri = Navigation.Uri;
+        var baseUri = Navigation.BaseUri;
+
+        if (uri == baseUri || uri == baseUri.TrimEnd('/'))
+        {
+            try
+            {
+                // 检查登录状态
+                var isLoggedIn = await CheckLoginStatus();
+                if (!isLoggedIn)
+                {
+                    Navigation.NavigateTo("/login", true);
+                }
+            }
+            catch
+            {
+                Navigation.NavigateTo("/login", true);
+            }
+        }
+    }
+
+    private async Task<bool> CheckLoginStatus()
+    {
+        try
+        {
+            // 检查 localStorage 和 sessionStorage 中的登录状态
+            var localLogin = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
+            if (localLogin == "true")
+                return true;
+
+            var sessionLogin = await JS.InvokeAsync<string>("sessionStorage.getItem", "isLoggedIn");
+            return sessionLogin == "true";
+        }
+        catch
+        {
+            return false;
+        }
+    }
+}

@@ -95,7 +95,6 @@ D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFac
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.AssemblyInfo.cs
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.csproj.CoreCompileInputs.cache
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.MvcApplicationPartsAssemblyInfo.cache
-D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\PlantFactory.sourcelink.json
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\rjimswa.dswa.cache.json
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
 D:\工作文件\植物工厂\PlantFactory\PlantFactory\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json

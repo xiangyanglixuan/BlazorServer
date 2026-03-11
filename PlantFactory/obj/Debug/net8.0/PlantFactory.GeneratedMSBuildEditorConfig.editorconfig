@@ -50,6 +50,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xEZXZpY2VNb25pdG9yaW5nLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/工作文件/植物工厂/PlantFactory/PlantFactory/Components/Pages/EmptyLayout.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFbXB0eUxheW91dC5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/工作文件/植物工厂/PlantFactory/PlantFactory/Components/Pages/GrowthFormula.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xHcm93dGhGb3JtdWxhLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
@@ -68,6 +72,10 @@ build_metadata.AdditionalFiles.CssScope =
 
 [D:/工作文件/植物工厂/PlantFactory/PlantFactory/Components/Pages/LocationMonitoring.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2NhdGlvbk1vbml0b3JpbmcucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[D:/工作文件/植物工厂/PlantFactory/PlantFactory/Components/Pages/Login.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
 [D:/工作文件/植物工厂/PlantFactory/PlantFactory/Components/Pages/NutrientMonitoring.razor]

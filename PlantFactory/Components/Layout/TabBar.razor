@@ -19,7 +19,7 @@
                 }
                 <span>@tab.Title</span>
 
-                @if (tab.Url != "/")
+                @if (tab.CanClose)
                 {
                     <i class="fas fa-times tab-close"
                        @onclick:stopPropagation="true"
@@ -34,14 +34,26 @@
 
 @code {
     private List<TabItem> _tabs = new();
-    private bool _isNavigating = false;
-    private const int MAX_TABS = 10; // 最大标签页数量
-    private readonly SemaphoreSlim _navigationLock = new(1, 1); // 使用信号量代替布尔标志
+    private const int MAX_TABS = 10;
+    private readonly SemaphoreSlim _navigationLock = new(1, 1);
+    private string _currentUrl = "";
+    private bool _disposed = false; // 添加释放标志
+    private CancellationTokenSource _cts = new(); // 添加取消令牌源
 
     protected override void OnInitialized()
     {
         InitializeHomeTab();
         NavigationManager.LocationChanged += OnLocationChanged;
+        _currentUrl = NavigationManager.Uri;
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // 初始化时检查当前URL
+            _ = Task.Run(async () => await SafeHandleLocationChanged(NavigationManager.Uri));
+        }
     }
 
     private void InitializeHomeTab()
@@ -51,31 +63,80 @@
             Title = "首页",
             Url = "/",
             Icon = "fas fa-home",
-            IsActive = true
+            IsActive = true,
+            CanClose = false // 首页不能关闭
         });
     }
 
     private async void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        // 使用信号量避免并发问题
-        if (!await _navigationLock.WaitAsync(0))
+        // 如果已释放，直接返回
+        if (_disposed) return;
+
+        // 避免重复处理相同的URL
+        if (_currentUrl.Equals(e.Location, StringComparison.OrdinalIgnoreCase))
             return;
+
+        _currentUrl = e.Location;
 
         try
         {
-            await HandleLocationChanged(e.Location);
+            await SafeHandleLocationChanged(e.Location);
         }
-        finally
+        catch (Exception ex)
         {
-            _navigationLock.Release();
+            Console.WriteLine($"处理路由变化时出错: {ex.Message}");
+        }
+    }
+
+    private async Task SafeHandleLocationChanged(string location)
+    {
+        // 如果已释放，直接返回
+        if (_disposed) return;
+
+        try
+        {
+            // 使用取消令牌
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+            cts.CancelAfter(5000); // 5秒超时
+
+            if (!await _navigationLock.WaitAsync(0, cts.Token))
+                return;
+
+            try
+            {
+                await HandleLocationChanged(location);
+            }
+            finally
+            {
+                if (!_disposed)
+                {
+                    _navigationLock.Release();
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine("处理路由变化操作已取消");
+        }
+        catch (ObjectDisposedException)
+        {
+            Console.WriteLine("对象已释放，忽略操作");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SafeHandleLocationChanged 错误: {ex.Message}");
         }
     }
 
     private async Task HandleLocationChanged(string location)
     {
+        // 如果已释放，直接返回
+        if (_disposed) return;
+
         try
         {
-            await AutoAddCurrentPageAsTab();
+            await AddOrActivateTab(location);
             await InvokeAsync(StateHasChanged);
         }
         catch (Exception ex)
@@ -93,31 +154,57 @@
 
     private async Task SwitchToTab(TabItem tab)
     {
-        if (!await _navigationLock.WaitAsync(0))
-            return;
+        // 如果已释放，直接返回
+        if (_disposed) return;
 
         try
         {
-            await HandleSwitchToTab(tab);
+            using var cts = CancellationTokenSource.CreateLinkedTokenSource(_cts.Token);
+            cts.CancelAfter(5000);
+
+            if (!await _navigationLock.WaitAsync(0, cts.Token))
+                return;
+
+            try
+            {
+                await HandleSwitchToTab(tab);
+            }
+            finally
+            {
+                if (!_disposed)
+                {
+                    _navigationLock.Release();
+                }
+            }
         }
-        finally
+        catch (OperationCanceledException)
         {
-            _navigationLock.Release();
+            Console.WriteLine("切换标签页操作已取消");
+        }
+        catch (ObjectDisposedException)
+        {
+            Console.WriteLine("对象已释放，忽略操作");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SwitchToTab 错误: {ex.Message}");
         }
     }
 
     private async Task HandleSwitchToTab(TabItem tab)
     {
-        // 如果已经是当前标签，不处理
+        // 如果已释放，直接返回
+        if (_disposed) return;
+
         if (tab.IsActive)
             return;
 
         // 更新激活状态
         UpdateActiveTab(tab);
 
-        // 检查是否需要导航
-        var currentUrl = NavigationManager.Uri;
+        // 导航到对应URL
         var targetUrl = NavigationManager.ToAbsoluteUri(tab.Url).ToString();
+        var currentUrl = NavigationManager.Uri;
 
         if (!currentUrl.Equals(targetUrl, StringComparison.OrdinalIgnoreCase))
         {
@@ -125,7 +212,6 @@
         }
         else
         {
-            // 如果在同一页面，只需要更新UI
             await InvokeAsync(StateHasChanged);
         }
     }
@@ -140,7 +226,10 @@
 
     private async Task CloseTab(TabItem tab)
     {
-        if (tab.Url == "/" || _tabs.Count <= 1)
+        // 如果已释放，直接返回
+        if (_disposed) return;
+
+        if (!tab.CanClose || _tabs.Count <= 1)
             return;
 
         var wasActive = tab.IsActive;
@@ -150,7 +239,7 @@
 
         if (wasActive && _tabs.Any())
         {
-            // 激活前一个标签，如果没有则激活后一个
+            // 优先激活前一个标签，如果没有则激活后一个
             var nextTab = tabIndex > 0 ? _tabs[tabIndex - 1] : _tabs[0];
             nextTab.IsActive = true;
 
@@ -162,6 +251,9 @@
 
     private async Task NavigateToTabIfNeeded(TabItem tab)
     {
+        // 如果已释放，直接返回
+        if (_disposed) return;
+
         var currentUrl = NavigationManager.Uri;
         var targetUrl = NavigationManager.ToAbsoluteUri(tab.Url).ToString();
 
@@ -171,46 +263,75 @@
         }
     }
 
-    private async Task AutoAddCurrentPageAsTab()
+    private async Task AddOrActivateTab(string url)
     {
-        var currentUrl = NavigationManager.Uri;
-        var relativePath = NavigationManager.ToBaseRelativePath(currentUrl);
+        // 如果已释放，直接返回
+        if (_disposed) return;
 
-        if (string.IsNullOrEmpty(relativePath))
-            return;
-
-        // 检查是否超过最大标签页数
-        if (_tabs.Count >= MAX_TABS)
+        try
         {
-            await JSRuntime.InvokeVoidAsync("alert", $"最多只能打开{MAX_TABS}个标签页");
-            return;
+            var relativePath = NavigationManager.ToBaseRelativePath(url);
+
+            // 如果是登录页，不添加标签
+            if (relativePath.Equals("login", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            // 如果是首页
+            if (string.IsNullOrEmpty(relativePath))
+            {
+                var homeTab = _tabs.FirstOrDefault(t => t.Url == "/");
+                if (homeTab != null)
+                {
+                    UpdateActiveTab(homeTab);
+                }
+                return;
+            }
+
+            // 检查是否超过最大标签页数
+            if (_tabs.Count >= MAX_TABS)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", $"最多只能打开{MAX_TABS}个标签页");
+                return;
+            }
+
+            // 标准化URL
+            var normalizedPath = NormalizePath(relativePath);
+            var fullPath = "/" + normalizedPath;
+
+            // 查找是否已存在该标签
+            var existingTab = _tabs.FirstOrDefault(t =>
+                !string.IsNullOrEmpty(t.Url) &&
+                NormalizePath(t.Url).Equals(normalizedPath, StringComparison.OrdinalIgnoreCase));
+
+            if (existingTab != null)
+            {
+                // 如果标签已存在，只需激活它
+                UpdateActiveTab(existingTab);
+            }
+            else
+            {
+                // 创建新标签
+                var newTab = new TabItem
+                {
+                    Title = GetPageTitle(normalizedPath),
+                    Url = fullPath,
+                    Icon = GetPageIcon(normalizedPath),
+                    IsActive = true,
+                    CanClose = true
+                };
+
+                // 先将新标签设置为激活
+                UpdateActiveTab(newTab);
+                // 然后添加新标签
+                _tabs.Add(newTab);
+            }
         }
-
-        // 标准化URL路径
-        var normalizedPath = NormalizePath(relativePath);
-        var fullPath = "/" + normalizedPath;
-
-        // 检查是否已存在该标签
-        var existingTab = _tabs.FirstOrDefault(t =>
-            NormalizePath(t.Url).Equals(normalizedPath, StringComparison.OrdinalIgnoreCase));
-
-        if (existingTab != null)
+        catch (Exception ex)
         {
-            UpdateActiveTab(existingTab);
-            return;
+            Console.WriteLine($"AddOrActivateTab 错误: {ex.Message}");
         }
-
-        // 创建新标签
-        var tab = new TabItem
-        {
-            Title = GetPageTitle(normalizedPath),
-            Url = fullPath,
-            Icon = GetPageIcon(normalizedPath),
-            IsActive = true
-        };
-
-        UpdateActiveTab(tab);
-        _tabs.Add(tab);
     }
 
     private string NormalizePath(string path)
@@ -272,8 +393,25 @@
 
     public void Dispose()
     {
+        if (_disposed) return;
+
+        _disposed = true;
+
+        // 取消所有正在进行的操作
+        _cts.Cancel();
+        _cts.Dispose();
+
+        // 移除事件处理
         NavigationManager.LocationChanged -= OnLocationChanged;
-        _navigationLock?.Dispose();
+
+        try
+        {
+            _navigationLock?.Dispose();
+        }
+        catch
+        {
+            // 忽略释放时的错误
+        }
     }
 
     private class TabItem
@@ -282,5 +420,6 @@
         public string Url { get; set; } = string.Empty;
         public string Icon { get; set; } = string.Empty;
         public bool IsActive { get; set; }
+        public bool CanClose { get; set; } = true;
     }
 }
