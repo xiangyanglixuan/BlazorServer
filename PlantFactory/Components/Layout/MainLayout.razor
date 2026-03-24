@@ -1,4 +1,5 @@
-﻿@* Components/Layout/MainLayout.razor *@
+﻿@using PlantFactory.Components.Services
+@* Components/Layout/MainLayout.razor *@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
@@ -184,7 +185,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 12px 15px;
+        padding: 12px 2px;
         color: rgba(255, 255, 255, 0.8);
         text-decoration: none;
         border-radius: 8px;
@@ -224,11 +225,12 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        padding: 12px 15px;
+        padding: 12px 7px;
         color: rgba(255, 255, 255, 0.8);
         cursor: pointer;
         transition: all 0.3s ease;
         user-select: none;
+        border-radius: 8px;
     }
 
         .nav-menu-header:hover {
@@ -455,6 +457,204 @@
         background: #f8f9fa;
     }
 
+    /* 弹窗遮罩层 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    animation: fadeIn 0.3s ease-out;
+    backdrop-filter: blur(5px);
+}
+
+/* 弹窗容器 */
+.modal-container {
+    background: white;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 550px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    animation: slideUp 0.3s ease-out;
+}
+
+/* 弹窗头部 */
+.modal-header {
+    padding: 20px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-radius: 20px 20px 0 0;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.modal-header h3 i {
+    font-size: 1.5rem;
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: rotate(90deg);
+}
+
+.modal-close i {
+    font-size: 1.1rem;
+}
+
+/* 弹窗主体 */
+.modal-body {
+    padding: 30px;
+}
+
+.profile-avatar {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.profile-avatar i {
+    font-size: 5rem;
+    color: #667eea;
+    background: linear-gradient(135deg, #667eea20 0%, #764ba220 100%);
+    border-radius: 50%;
+    padding: 15px;
+}
+
+.profile-info {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.info-row:hover {
+    background: #f0f2f5;
+    transform: translateX(5px);
+}
+
+.info-label {
+    width: 120px;
+    color: #666;
+    font-size: 0.95rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-label i {
+    width: 20px;
+    color: #667eea;
+}
+
+.info-value {
+    flex: 1;
+    color: #333;
+    font-weight: 500;
+    font-size: 1rem;
+}
+
+.role-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    display: inline-block;
+}
+
+/* 弹窗底部 */
+.modal-footer {
+    padding: 20px 25px;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn:active {
+    transform: translateY(0);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: #5a6268;
+}
+
+.btn-danger {
+    background: #dc3545;
+    color: white;
+}
+
+.btn-danger:hover {
+    background: #c82333;
+}
     
 </style>
 
@@ -497,15 +697,15 @@
                     @if (_showUserMenu)
                     {
                         <div class="user-dropdown">
-                            <div class="dropdown-item">
+                            <div class="dropdown-item" @onclick="OpenUserProfile">
                                 <i class="fas fa-user"></i>
                                 <span>个人中心</span>
-                            </div>
+                            </div>                           
                            @*  <div class="dropdown-item">
                                 <i class="fas fa-cog"></i>
                                 <span>系统设置</span>
                             </div> *@
-                            <div class="dropdown-divider"></div>
+                            @* <div class="dropdown-divider"></div> *@
                             <div class="dropdown-item" @onclick="Logout">
                                 <i class="fas fa-sign-out-alt"></i>
                                 <span>退出登录</span>
@@ -515,6 +715,83 @@
                 </div>
             </div>
         </div>
+
+        <!-- 用户个人中心弹窗 -->
+        @if (_showUserProfile)
+        {
+            <div class="modal-overlay" @onclick="CloseUserProfile">
+                <div class="modal-container" @onclick:stopPropagation="true">
+                    <div class="modal-header">
+                        <h3><i class="fas fa-user-circle"></i> 个人中心</h3>
+                        <button class="modal-close" @onclick="CloseUserProfile">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="profile-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="profile-info">
+                            <div class="info-row">
+                                <div class="info-label">
+                                    <i class="fas fa-user-tag"></i>
+                                    <span>用户名：</span>
+                                </div>
+                                <div class="info-value">@_username</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    <i class="fas fa-tag"></i>
+                                    <span>用户角色：</span>
+                                </div>
+                                <div class="info-value">
+                                    <span class="role-badge">@_userRole</span>
+                                </div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    <i class="fas fa-clock"></i>
+                                    <span>登录时间：</span>
+                                </div>
+                                <div class="info-value">@_loginTime</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>电子邮箱：</span>
+                                </div>
+                                <div class="info-value">@_email</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    <i class="fas fa-phone"></i>
+                                    <span>联系电话：</span>
+                                </div>
+                                <div class="info-value">@_phone</div>
+                            </div>
+                            <div class="info-row">
+                                <div class="info-label">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    <span>最后登录IP：</span>
+                                </div>
+                                <div class="info-value">@_lastLoginIp</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-primary" @onclick="EditProfile">
+                            <i class="fas fa-edit"></i> 编辑资料
+                        </button>
+                        <button class="btn btn-secondary" @onclick="ChangePassword">
+                            <i class="fas fa-key"></i> 修改密码
+                        </button>
+                        <button class="btn btn-danger" @onclick="CloseUserProfile">
+                            <i class="fas fa-times"></i> 关闭
+                        </button>
+                    </div>
+                </div>
+            </div>
+        }
 
         <!-- 标签页导航 -->
         <TabBar />
@@ -529,54 +806,59 @@
     private bool _sidebarCollapsed = false;
     private bool _showUserMenu = false;
     private bool _isChecking = true; // 添加检查状态
+    private bool _showUserProfile = false; // 控制个人中心弹窗显示
     private string _username = "管理员";
+    private string _userRole = "系统管理员";
+    private string _loginTime = "";
+    private string _email = "admin@plantfactory.com";
+    private string _phone = "138-8888-8888";
+    private string _lastLoginIp = "192.168.1.100";
 
     protected override async Task OnInitializedAsync()
     {
-        try
+        var currentUri = Navigation.Uri;
+        var isLoginPage = currentUri.Contains("/login", StringComparison.OrdinalIgnoreCase);
+        
+        if (!isLoginPage)
         {
-            // 检查是否已登录
+            // 只在非登录页检查登录状态
             var isLoggedIn = await CheckLoginStatus();
-
-            // 获取当前路径
-            var currentUri = Navigation.Uri;
-            var baseUri = Navigation.BaseUri;
-            var isLoginPage = currentUri.Contains("/login");
-
-            if (!isLoggedIn && !isLoginPage)
+            if (!isLoggedIn)
             {
-                // 未登录且不在登录页，跳转到登录页
                 Navigation.NavigateTo("/login", false);
                 return;
             }
-
-            if (isLoggedIn)
-            {
-                // 获取用户名
-                _username = await GetUsername();
-            }
-        }
-        finally
-        {
-            _isChecking = false;
-            StateHasChanged();
+            
+            // 获取用户信息
+            await LoadUserInfo();
         }
     }
 
-    private async Task<bool> CheckLoginStatus()
+    private async Task LoadUserInfo()
     {
         try
         {
-            var localLogin = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
-            if (localLogin == "true")
-                return true;
-
-            var sessionLogin = await JS.InvokeAsync<string>("sessionStorage.getItem", "isLoggedIn");
-            return sessionLogin == "true";
+            // 获取用户名
+            _username = await GetUsername();
+            
+            // 获取用户角色
+            _userRole = await GetUserRole();
+            
+            // 获取登录时间
+            _loginTime = await GetLoginTime();
+            
+            // 获取邮箱
+            _email = await GetUserEmail();
+            
+            // 获取电话
+            _phone = await GetUserPhone();
+            
+            // 获取最后登录IP
+            _lastLoginIp = await GetLastLoginIp();
         }
-        catch
+        catch (Exception ex)
         {
-            return false;
+            Console.WriteLine($"加载用户信息失败：{ex.Message}");
         }
     }
 
@@ -594,6 +876,182 @@
         catch
         {
             return "管理员";
+        }
+    }
+
+    private async Task<string> GetUserRole()
+    {
+        try
+        {
+            var role = await JS.InvokeAsync<string>("localStorage.getItem", "userRole");
+            if (string.IsNullOrEmpty(role))
+            {
+                role = await JS.InvokeAsync<string>("sessionStorage.getItem", "userRole");
+            }
+            
+            if (string.IsNullOrEmpty(role))
+            {
+                if (_username == "admin")
+                    return "超级管理员";
+                else if (_username == "manager")
+                    return "系统管理员";
+                else if (_username == "operator")
+                    return "操作员";
+                else
+                    return "普通用户";
+            }
+            
+            return role ?? "系统管理员";
+        }
+        catch
+        {
+            return "系统管理员";
+        }
+    }
+
+    private async Task<string> GetLoginTime()
+    {
+        try
+        {
+            var time = await JS.InvokeAsync<string>("localStorage.getItem", "loginTime");
+            if (string.IsNullOrEmpty(time))
+            {
+                time = await JS.InvokeAsync<string>("sessionStorage.getItem", "loginTime");
+            }
+            
+            if (string.IsNullOrEmpty(time))
+            {
+                return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+            }
+            
+            return time;
+        }
+        catch
+        {
+            return DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+    }
+
+    private async Task<string> GetUserEmail()
+    {
+        try
+        {
+            var email = await JS.InvokeAsync<string>("localStorage.getItem", "userEmail");
+            if (string.IsNullOrEmpty(email))
+            {
+                email = await JS.InvokeAsync<string>("sessionStorage.getItem", "userEmail");
+            }
+            
+            // 根据用户名返回不同的邮箱（示例）
+            if (string.IsNullOrEmpty(email))
+            {
+                return _username switch
+                {
+                    "admin" => "admin@plantfactory.com",
+                    "manager" => "manager@plantfactory.com",
+                    "operator" => "operator@plantfactory.com",
+                    _ => "user@plantfactory.com"
+                };
+            }
+            
+            return email ?? "user@plantfactory.com";
+        }
+        catch
+        {
+            return "user@plantfactory.com";
+        }
+    }
+
+    private async Task<string> GetUserPhone()
+    {
+        try
+        {
+            var phone = await JS.InvokeAsync<string>("localStorage.getItem", "userPhone");
+            if (string.IsNullOrEmpty(phone))
+            {
+                phone = await JS.InvokeAsync<string>("sessionStorage.getItem", "userPhone");
+            }
+            
+            // 根据用户名返回不同的电话（示例）
+            if (string.IsNullOrEmpty(phone))
+            {
+                return _username switch
+                {
+                    "admin" => "138-8888-8888",
+                    "manager" => "139-9999-9999",
+                    "operator" => "137-7777-7777",
+                    _ => "136-6666-6666"
+                };
+            }
+            
+            return phone ?? "136-6666-6666";
+        }
+        catch
+        {
+            return "136-6666-6666";
+        }
+    }
+
+    private async Task<string> GetLastLoginIp()
+    {
+        try
+        {
+            var ip = await JS.InvokeAsync<string>("localStorage.getItem", "lastLoginIp");
+            if (string.IsNullOrEmpty(ip))
+            {
+                ip = await JS.InvokeAsync<string>("sessionStorage.getItem", "lastLoginIp");
+            }
+            
+            return ip ?? "192.168.1.100";
+        }
+        catch
+        {
+            return "192.168.1.100";
+        }
+    }
+
+    private void OpenUserProfile()
+    {
+        _showUserMenu = false; // 关闭下拉菜单
+        _showUserProfile = true; // 打开个人中心弹窗
+        StateHasChanged();
+    }
+
+    private void CloseUserProfile()
+    {
+        _showUserProfile = false;
+        StateHasChanged();
+    }
+
+    private void EditProfile()
+    {
+        // 实现编辑资料功能
+        CloseUserProfile();
+        // 可以在这里导航到编辑资料页面或打开另一个弹窗
+    }
+
+    private void ChangePassword()
+    {
+        // 实现修改密码功能
+        CloseUserProfile();
+        // 可以在这里导航到修改密码页面或打开另一个弹窗
+    }
+
+
+    private async Task<bool> CheckLoginStatus()
+    {
+        try
+        {
+            var localLogin = await JS.InvokeAsync<string>("localStorage.getItem", "isLoggedIn");
+            if (localLogin == "true")
+                return true;
+
+            var sessionLogin = await JS.InvokeAsync<string>("sessionStorage.getItem", "isLoggedIn");
+            return sessionLogin == "true";
+        }
+        catch
+        {
+            return false;
         }
     }
 

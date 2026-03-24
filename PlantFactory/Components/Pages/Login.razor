@@ -805,6 +805,17 @@
                 // 跳转到首页，使用 false 避免强制刷新
                 Navigation.NavigateTo("/", false);
             }
+            else if (username == "manager" && password == "123456")
+            {
+                await SaveLoginState();
+
+                Navigation.NavigateTo("/", false);
+            }
+            else if (username == "operator" && password == "123456")
+            {
+                await SaveLoginState();
+                Navigation.NavigateTo("/", false);
+            }
             else
             {
                 // 登录失败
@@ -827,28 +838,99 @@
     {
         try
         {
-            if (rememberMe)
-            {
-                // 保存到 localStorage
-                await JS.InvokeVoidAsync("localStorage.setItem", "isLoggedIn", "true");
-                await JS.InvokeVoidAsync("localStorage.setItem", "username", username);
-                // 清除 sessionStorage
-                await JS.InvokeVoidAsync("sessionStorage.removeItem", "isLoggedIn");
-                await JS.InvokeVoidAsync("sessionStorage.removeItem", "username");
-            }
-            else
-            {
-                // 保存到 sessionStorage
-                await JS.InvokeVoidAsync("sessionStorage.setItem", "isLoggedIn", "true");
-                await JS.InvokeVoidAsync("sessionStorage.setItem", "username", username);
-                // 清除 localStorage
-                await JS.InvokeVoidAsync("localStorage.removeItem", "isLoggedIn");
-                await JS.InvokeVoidAsync("localStorage.removeItem", "username");
-            }
+            // 根据用户名确定角色和其他信息
+            string userRole = DetermineUserRole(username);
+            string userEmail = DetermineUserEmail(username);
+            string userPhone = DetermineUserPhone(username);
+            string lastLoginIp = await GetClientIp();
+        
+            // 获取当前登录时间
+            string currentTime = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss");
+        
+            var storage = rememberMe ? "localStorage" : "sessionStorage";
+        
+            // 保存所有用户信息
+            await JS.InvokeVoidAsync($"{storage}.setItem", "isLoggedIn", "true");
+            await JS.InvokeVoidAsync($"{storage}.setItem", "username", username);
+            await JS.InvokeVoidAsync($"{storage}.setItem", "userRole", userRole);
+            await JS.InvokeVoidAsync($"{storage}.setItem", "loginTime", currentTime);
+            await JS.InvokeVoidAsync($"{storage}.setItem", "userEmail", userEmail);
+            await JS.InvokeVoidAsync($"{storage}.setItem", "userPhone", userPhone);
+            await JS.InvokeVoidAsync($"{storage}.setItem", "lastLoginIp", lastLoginIp);
+        
+            // 清除另一种存储方式
+            string otherStorage = rememberMe ? "sessionStorage" : "localStorage";
+            await JS.InvokeVoidAsync($"{otherStorage}.removeItem", "isLoggedIn");
+            await JS.InvokeVoidAsync($"{otherStorage}.removeItem", "username");
+            await JS.InvokeVoidAsync($"{otherStorage}.removeItem", "userRole");
+            await JS.InvokeVoidAsync($"{otherStorage}.removeItem", "loginTime");
+            await JS.InvokeVoidAsync($"{otherStorage}.removeItem", "userEmail");
+            await JS.InvokeVoidAsync($"{otherStorage}.removeItem", "userPhone");
+            await JS.InvokeVoidAsync($"{otherStorage}.removeItem", "lastLoginIp");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"保存登录状态失败：{ex.Message}");
+        }
+    }
+
+    // 根据用户名确定角色
+    private string DetermineUserRole(string username)
+    {
+        return username.ToLower() switch
+        {
+            "admin" => "超级管理员",
+            "administrator" => "超级管理员",
+            "manager" => "系统管理员",
+            "operator" => "操作员",
+            "user" => "普通用户",
+            "guest" => "访客",
+            _ => "普通用户"
+        };
+    }
+
+    // 根据用户名确定邮箱
+    private string DetermineUserEmail(string username)
+    {
+        return username.ToLower() switch
+        {
+            "admin" => "admin@plantfactory.com",
+            "administrator" => "admin@plantfactory.com",
+            "manager" => "manager@plantfactory.com",
+            "operator" => "operator@plantfactory.com",
+            "user" => "user@plantfactory.com",
+            "guest" => "guest@plantfactory.com",
+            _ => $"{username.ToLower()}@plantfactory.com"
+        };
+    }
+
+    // 根据用户名确定电话
+    private string DetermineUserPhone(string username)
+    {
+        return username.ToLower() switch
+        {
+            "admin" => "138-8888-8888",
+            "administrator" => "138-8888-8888",
+            "manager" => "139-9999-9999",
+            "operator" => "137-7777-7777",
+            "user" => "136-6666-6666",
+            "guest" => "135-5555-5555",
+            _ => "136-6666-6666"
+        };
+    }
+
+    // 获取客户端IP（示例方法）
+    private async Task<string> GetClientIp()
+    {
+        try
+        {
+            // 这里可以通过JS获取客户端的IP
+            // 简单起见，返回模拟数据
+            return "192.168.1." + new Random().Next(1, 255);
+        }
+        catch
+        {
+            return "192.168.1.100";
         }
     }
 

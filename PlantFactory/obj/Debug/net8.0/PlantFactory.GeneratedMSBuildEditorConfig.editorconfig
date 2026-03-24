@@ -26,6 +26,10 @@ build_property.EnableCodeStyleSeverity =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[D:/工作文件/植物工厂/PlantFactory/PlantFactory/Components/LanguageSwitcher.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYW5ndWFnZVN3aXRjaGVyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [D:/工作文件/植物工厂/PlantFactory/PlantFactory/Components/Layout/NavMenuItem.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTmF2TWVudUl0ZW0ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 

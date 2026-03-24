@@ -17,7 +17,6 @@ builder.Services.AddSingleton<SqlHelper>();
 builder.Services.AddScoped<PlantService>();
 builder.Services.AddScoped<InBoundService>();
 
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

@@ -2,49 +2,219 @@
 document.documentElement.style.overflowY = "hidden";
 document.documentElement.style.overflowX = "hidden";
 
-// 初始化函数
-window.initializeSvg = function () {
-    const svgElement = document.getElementById('svg');
-   
-    // 等待所有路径元素加载完成
-    setTimeout(() => {      
-            initCars(svgElement);
-            initGKs(svgElement);
-            initGKs1(svgElement);
-            initLogindesk(svgElement);
-            initLogindesk1(svgElement);      
-    }, 200);
+// ------------------- 设备状态管理 -------------------
+const deviceStatusMap = new Map();
+let updateInterval = null;
 
-    // 鼠标事件
-    svgElement.addEventListener('wheel', handleWheelZoom);
-    svgElement.addEventListener('mousedown', handleMouseDown);
-};
+// 获取状态对应的颜色
+function getStatusColor(status) {
+    const colorMap = {
+        '待機': '#808080',
+        '運行': '#4caf50',
+        '故障': '#f44336',
+        '掉綫': '#000000',
+        '急停': '#ffc107',
+        '鎖車': '#ff9800',
+        '休眠': '#f48fb1',
+        '鎖格': '#2196f3',
+        '滿格': '#9c27b0',
+        '堵包': '#00bcd4',
+        '本地': '#ffffff',
+        '超邊': '#795548'
+    };
+    return colorMap[status] || '#808080';
+}
 
-// 小车初始化
-function initCars(svg) {
-    const path = document.querySelector('#myPath');
-    if (!path) {
-        console.error('Path #myPath not found');
-        return;
+// 初始化模拟设备状态
+function initMockDeviceStatus() {
+    // 小车: 500辆
+    for (let i = 1; i <= 500; i++) {
+        const statusList = ['待機', '運行', '故障', '掉綫', '急停', '鎖車', '休眠'];
+        let status = statusList[Math.floor(Math.random() * statusList.length)];
+        if (Math.random() > 0.85) status = '待機';
+        if (Math.random() > 0.92) status = '運行';
+        deviceStatusMap.set(`car${i}`, {
+            type: '小车',
+            id: `CAR-${i.toString().padStart(3, '0')}`,
+            status: status,
+            detail: getStatusDetail(status),
+            lastUpdate: new Date().toLocaleTimeString()
+        });
     }
 
+    // 格口 (1-55)
+    for (let i = 1; i <= 55; i++) {
+        const statusList = ['待機', '鎖格', '滿格', '堵包', '故障'];
+        let status = statusList[Math.floor(Math.random() * statusList.length)];
+        if (Math.random() > 0.7) status = '待機';
+        deviceStatusMap.set(`gk${i}`, {
+            type: '格口',
+            id: `GK-${i.toString().padStart(2, '0')}`,
+            status: status,
+            detail: getStatusDetail(status),
+            lastUpdate: new Date().toLocaleTimeString()
+        });
+    }
+}
+
+function getStatusDetail(status) {
+    const details = {
+        '待機': '设备空闲，等待任务指令',
+        '運行': '正在执行搬运任务',
+        '故障': '设备故障，需要维修处理',
+        '掉綫': '网络连接中断，检查通讯',
+        '急停': '紧急停止按钮被按下',
+        '鎖車': '小车被系统锁定',
+        '鎖格': '格口被锁定不可用',
+        '滿格': '格口已满，等待清空',
+        '堵包': '包裹堵塞，需要清理',
+        '休眠': '低功耗节能模式',
+        '本地': '本地手动控制模式'
+    };
+    return details[status] || '状态正常';
+}
+
+// 随机更新部分设备状态（模拟实时变化）
+function randomUpdateStatus() {
+    const allDevices = Array.from(deviceStatusMap.keys());
+    const updateCount = Math.min(15, allDevices.length);
+
+    for (let i = 0; i < updateCount; i++) {
+        const randomIndex = Math.floor(Math.random() * allDevices.length);
+        const deviceKey = allDevices[randomIndex];
+        const device = deviceStatusMap.get(deviceKey);
+
+        if (device) {
+            let newStatus = device.status;
+            const random = Math.random();
+
+            // 状态变化逻辑
+            if (device.status === '待機') {
+                if (random < 0.1) newStatus = '運行';
+                else if (random < 0.12) newStatus = '故障';
+            } else if (device.status === '運行') {
+                if (random < 0.15) newStatus = '待機';
+                else if (random < 0.18) newStatus = '故障';
+            } else if (device.status === '故障') {
+                if (random < 0.3) newStatus = '待機';
+            } else if (device.status === '掉綫') {
+                if (random < 0.4) newStatus = '待機';
+            } else if (device.status === '鎖格' || device.status === '滿格') {
+                if (random < 0.2) newStatus = '待機';
+            } else if (device.status === '堵包') {
+                if (random < 0.25) newStatus = '待機';
+            }
+
+            if (newStatus !== device.status) {
+                device.status = newStatus;
+                device.detail = getStatusDetail(newStatus);
+                device.lastUpdate = new Date().toLocaleTimeString();
+                device.lastUpdate = new Date().toLocaleTimeString();
+                deviceStatusMap.set(deviceKey, device);
+
+                // 更新SVG中对应设备的颜色
+                updateDeviceColor(deviceKey, newStatus);
+            }
+        }
+    }
+}
+
+// 更新设备颜色
+function updateDeviceColor(deviceId, status) {
+    const color = getStatusColor(status);
+    const element = document.getElementById(deviceId);
+    if (element) {
+        element.setAttribute('fill', color);
+    }
+}
+
+// 创建悬浮提示框
+let tooltipDiv = null;
+function ensureTooltip() {
+    if (!tooltipDiv) {
+        tooltipDiv = document.createElement('div');
+        tooltipDiv.className = 'device-tooltip';
+        tooltipDiv.style.display = 'none';
+        document.body.appendChild(tooltipDiv);
+    }
+    return tooltipDiv;
+}
+
+function showDeviceTooltip(deviceId, event) {
+    const data = deviceStatusMap.get(deviceId);
+    if (!data) return;
+
+    const tooltip = ensureTooltip();
+    const statusColor = getStatusColor(data.status);
+    tooltip.innerHTML = `
+        <strong>📦 ${data.type}</strong> &nbsp; ${data.id}<br/>
+        <span style="color: #aaa;">状态:</span> 
+        <span class="tooltip-status" style="color: ${statusColor}; font-weight: bold;">${data.status}</span><br/>
+        <span style="color: #aaa;">详情:</span> ${data.detail}<hr/>
+        <span style="color: #aaa; font-size: 11px;">⏱️ 更新: ${data.lastUpdate}</span>
+    `;
+    tooltip.style.display = 'block';
+
+    let left = event.clientX + 15;
+    let top = event.clientY - 35;
+    if (left + 220 > window.innerWidth) left = event.clientX - 240;
+    if (top + 120 > window.innerHeight) top = event.clientY - 100;
+    tooltip.style.left = left + 'px';
+    tooltip.style.top = top + 'px';
+}
+
+function hideDeviceTooltip() {
+    if (tooltipDiv) {
+        tooltipDiv.style.display = 'none';
+    }
+}
+
+function bindTooltipEvents(element, deviceId) {
+    if (!element) return;
+    element.addEventListener('mouseenter', (e) => {
+        showDeviceTooltip(deviceId, e);
+    });
+    element.addEventListener('mouseleave', () => {
+        hideDeviceTooltip();
+    });
+}
+
+// 统一绑定所有设备事件
+function bindAllDeviceTooltips() {
+    for (let i = 1; i <= 500; i++) {
+        const car = document.getElementById(`car${i}`);
+        if (car) bindTooltipEvents(car, `car${i}`);
+    }
+    for (let i = 1; i <= 55; i++) {
+        const gk = document.getElementById(`gk${i}`);
+        if (gk) bindTooltipEvents(gk, `gk${i}`);
+    }
+}
+
+// 初始化SVG设备
+function initCars(svg) {
+    const path = document.querySelector('#myPath');
+    if (!path) return;
+
     const pathLength = path.getTotalLength();
-    const numCars = 500; // 小车数量
+    const numCars = 500;
     const carSpacing = pathLength / numCars;
 
     for (let i = 0; i < numCars; i++) {
         const carGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-
         const car = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         car.setAttributeNS(null, 'class', 'car');
         car.setAttributeNS(null, 'width', '15');
         car.setAttributeNS(null, 'height', '30');
-        car.setAttributeNS(null, 'fill', 'gray'); // 默认灰色
+
+        const statusData = deviceStatusMap.get(`car${i + 1}`);
+        const fillColor = getStatusColor(statusData ? statusData.status : '待機');
+        car.setAttributeNS(null, 'fill', fillColor);
+        car.setAttributeNS(null, 'rx', '3');
+        car.setAttributeNS(null, 'ry', '3');
 
         const carLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
         carLabel.setAttributeNS(null, 'class', 'car-label');
-        carLabel.setAttributeNS(null, 'font-size', '8');
-        carLabel.setAttributeNS(null, 'fill', 'white');
         carLabel.textContent = (i + 1).toString().padStart(3, '0');
 
         try {
@@ -53,8 +223,8 @@ function initCars(svg) {
             const tangentAngle = Math.atan2(point.y - prevPoint.y, point.x - prevPoint.x);
             const rotation = tangentAngle * 180 / Math.PI;
 
-            car.setAttributeNS(null, 'x', point.x - 15 / 2);
-            car.setAttributeNS(null, 'y', point.y - 30 / 2);
+            car.setAttributeNS(null, 'x', point.x - 7.5);
+            car.setAttributeNS(null, 'y', point.y - 15);
             car.setAttributeNS(null, 'transform', `rotate(${rotation}, ${point.x}, ${point.y})`);
             car.setAttributeNS(null, 'id', `car${i + 1}`);
 
@@ -65,14 +235,12 @@ function initCars(svg) {
             carGroup.appendChild(car);
             carGroup.appendChild(carLabel);
             svg.appendChild(carGroup);
-                     
         } catch (error) {
             console.error('Error creating car:', i, error);
         }
     }
 }
 
-// 格口初始化 (myPath1)
 function initGKs(svg) {
     const path = document.querySelector('#myPath1');
     if (!path) return;
@@ -82,40 +250,36 @@ function initGKs(svg) {
     const gkSpacing = pathLength / numGKs;
 
     for (let i = 0; i < numGKs; i++) {
-        const gkGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-
+        const gkNumber = i + 28;
         const gk = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         gk.setAttributeNS(null, 'class', 'gk');
         gk.setAttributeNS(null, 'width', '10');
         gk.setAttributeNS(null, 'height', '148');
-        gk.setAttributeNS(null, 'fill', 'gray');
+
+        const statusData = deviceStatusMap.get(`gk${gkNumber}`);
+        const fillColor = getStatusColor(statusData ? statusData.status : '待機');
+        gk.setAttributeNS(null, 'fill', fillColor);
 
         const gkLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
         gkLabel.setAttributeNS(null, 'class', 'gk-label');
-        gkLabel.setAttributeNS(null, 'font-size', '8');
-        gkLabel.setAttributeNS(null, 'fill', 'black');
-        gkLabel.textContent = (i + 28).toString();
+        gkLabel.textContent = gkNumber.toString();
 
         try {
             const point = path.getPointAtLength(i * gkSpacing);
-
-            gk.setAttributeNS(null, 'x', point.x - 10 / 2);
-            gk.setAttributeNS(null, 'y', point.y - 148 / 2);
-            gk.setAttributeNS(null, 'id', `gk${i + 28}`);
-
+            gk.setAttributeNS(null, 'x', point.x - 5);
+            gk.setAttributeNS(null, 'y', point.y - 74);
+            gk.setAttributeNS(null, 'id', `gk${gkNumber}`);
             gkLabel.setAttributeNS(null, 'x', point.x + 4);
             gkLabel.setAttributeNS(null, 'y', point.y - 2);
 
-            gkGroup.appendChild(gk);
-            gkGroup.appendChild(gkLabel);
-            svg.appendChild(gkGroup);
+            svg.appendChild(gk);
+            svg.appendChild(gkLabel);
         } catch (error) {
             console.error('Error creating GK:', i, error);
         }
     }
 }
 
-// 格口初始化 (myPath2)
 function initGKs1(svg) {
     const path = document.querySelector('#myPath2');
     if (!path) return;
@@ -125,33 +289,30 @@ function initGKs1(svg) {
     const gkSpacing = pathLength / numGKs1;
 
     for (let i = 0; i < numGKs1; i++) {
-        const gkGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
-
+        const gkNumber = i + 1;
         const gk = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         gk.setAttributeNS(null, 'class', 'gk');
         gk.setAttributeNS(null, 'width', '32');
         gk.setAttributeNS(null, 'height', '30');
-        gk.setAttributeNS(null, 'fill', 'gray');
+
+        const statusData = deviceStatusMap.get(`gk${gkNumber}`);
+        const fillColor = getStatusColor(statusData ? statusData.status : '待機');
+        gk.setAttributeNS(null, 'fill', fillColor);
 
         const gkLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
         gkLabel.setAttributeNS(null, 'class', 'gk-label');
-        gkLabel.setAttributeNS(null, 'font-size', '8');
-        gkLabel.setAttributeNS(null, 'fill', 'black');
-        gkLabel.textContent = (i + 1).toString();
+        gkLabel.textContent = gkNumber.toString();
 
         try {
             const point = path.getPointAtLength(i * gkSpacing);
-
-            gk.setAttributeNS(null, 'x', point.x - 32 / 2);
-            gk.setAttributeNS(null, 'y', point.y - 30 / 2);
-            gk.setAttributeNS(null, 'id', `gk${i + 1}`);
-
+            gk.setAttributeNS(null, 'x', point.x - 16);
+            gk.setAttributeNS(null, 'y', point.y - 15);
+            gk.setAttributeNS(null, 'id', `gk${gkNumber}`);
             gkLabel.setAttributeNS(null, 'x', point.x - 8);
             gkLabel.setAttributeNS(null, 'y', point.y - 2);
 
-            gkGroup.appendChild(gk);
-            gkGroup.appendChild(gkLabel);
-            svg.appendChild(gkGroup);
+            svg.appendChild(gk);
+            svg.appendChild(gkLabel);
         } catch (error) {
             console.error('Error creating GK1:', i, error);
         }
@@ -242,11 +403,40 @@ function initLogindesk1(svg) {
     }
 }
 
-// 鼠标事件处理
+// 启动状态定时更新
+function startStatusUpdate() {
+    if (updateInterval) clearInterval(updateInterval);
+    updateInterval = setInterval(() => {
+        randomUpdateStatus();
+    }, 3000);
+}
+
+// 主初始化函数
+window.initializeSvg = function () {
+    initMockDeviceStatus();
+    startStatusUpdate();
+    const svgElement = document.getElementById('svg');
+
+    setTimeout(() => {
+        initCars(svgElement);
+        initGKs(svgElement);
+        initGKs1(svgElement);
+        initLogindesk(svgElement);
+        initLogindesk1(svgElement);
+
+        bindAllDeviceTooltips();
+      
+    }, 200);
+
+    svgElement.addEventListener('wheel', handleWheelZoom);
+    svgElement.addEventListener('mousedown', handleMouseDown);
+};
+
+// 鼠标缩放拖拽
 const state = {
-    zoomLevel: 1,
-    translateX: 0,
-    translateY: 0,
+    zoomLevel: 0.7,
+    translateX: -30,
+    translateY: -52,
     isDragging: false,
     dragStartX: 0,
     dragStartY: 0,
@@ -256,9 +446,9 @@ const state = {
 
 function handleWheelZoom(event) {
     event.preventDefault();
-    const zoomStep = 0.1;
-    const minZoom = 0.5;
-    const maxZoom = 3;
+    const zoomStep = 0.05;
+    const minZoom = 0.4;
+    const maxZoom = 2.5;
 
     if (event.deltaY < 0) {
         state.zoomLevel = Math.min(state.zoomLevel + zoomStep, maxZoom);
@@ -269,15 +459,17 @@ function handleWheelZoom(event) {
 }
 
 function handleMouseDown(event) {
-    event.preventDefault();
-    state.isDragging = true;
-    state.dragStartX = event.clientX;
-    state.dragStartY = event.clientY;
-    state.startTranslateX = state.translateX;
-    state.startTranslateY = state.translateY;
+    if (event.target.closest('svg') && !event.target.closest('.car') && !event.target.closest('.gk') && !event.target.closest('.logindesk')) {
+        event.preventDefault();
+        state.isDragging = true;
+        state.dragStartX = event.clientX;
+        state.dragStartY = event.clientY;
+        state.startTranslateX = state.translateX;
+        state.startTranslateY = state.translateY;
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+    }
 }
 
 function handleMouseMove(event) {
@@ -297,7 +489,7 @@ function handleMouseUp() {
 }
 
 function updateTransform() {
-    const svgElement = document.querySelector('svg');
+    const svgElement = document.querySelector('#svg');
     if (svgElement) {
         svgElement.style.transform = `scale(${state.zoomLevel}) translate(${state.translateX}px, ${state.translateY}px)`;
     }
