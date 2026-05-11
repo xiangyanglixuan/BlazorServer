@@ -1,6 +1,8 @@
 ﻿@* Components/Layout/TabBar.razor *@
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
+@using PlantFactory.Components.Services
+@inject LanguageService Lang
 @implements IDisposable
 
 <nav class="tab-nav" aria-label="标签页导航">
@@ -42,9 +44,23 @@
 
     protected override void OnInitialized()
     {
+        Lang.OnLanguageChanged += OnLanguageChanged;
         InitializeHomeTab();
         NavigationManager.LocationChanged += OnLocationChanged;
         _currentUrl = NavigationManager.Uri;
+    }
+
+    private async void OnLanguageChanged()
+    {
+        // 更新所有tab标题
+        foreach (var tab in _tabs)
+        {
+            if (string.IsNullOrEmpty(tab.Url) || tab.Url == "/")
+                tab.Title = Lang.T("TabHome");
+            else
+                tab.Title = GetPageTitle(tab.Url);
+        }
+        await InvokeAsync(StateHasChanged);
     }
 
     protected override void OnAfterRender(bool firstRender)
@@ -60,11 +76,11 @@
     {
         _tabs.Add(new TabItem
         {
-            Title = "首页",
+            Title = Lang.T("TabHome"),
             Url = "/",
             Icon = "fas fa-home",
             IsActive = true,
-            CanClose = false // 首页不能关闭
+            CanClose = false
         });
     }
 
@@ -292,7 +308,7 @@
             // 检查是否超过最大标签页数
             if (_tabs.Count >= MAX_TABS)
             {
-                await JSRuntime.InvokeVoidAsync("alert", $"最多只能打开{MAX_TABS}个标签页");
+                await JSRuntime.InvokeVoidAsync("alert", string.Format(Lang.T("TabMaxAlert"), MAX_TABS));
                 return;
             }
 
@@ -346,18 +362,18 @@
 
         return normalizedPath switch
         {
-            "location-monitoring" => "库位状态监测",
-            "location-analysis" => "库位统计分析",
-            "air-monitoring" => "空气参数监测",
-            "nutrient-monitoring" => "营养液监测",
-            "plant-category" => "植物类别管理",
-            "growth-formula" => "植物生长配方管理",
-            "inbound" => "入库管理",
-            "outbound" => "出库管理",
-            "alarm-management" => "设备报警管理",
-            "device-monitoring" => "设备状态监控",
-            "data-statistics" => "数据统计",
-            "" => "首页",
+            "location-monitoring" => Lang.T("TabLocationStatus"),
+            "location-analysis" => Lang.T("TabLocationAnalysis"),
+            "air-monitoring" => Lang.T("TabAirMonitor"),
+            "nutrient-monitoring" => Lang.T("TabNutrientMonitor"),
+            "plant-category" => Lang.T("TabPlantCategory"),
+            "growth-formula" => Lang.T("TabGrowthFormula"),
+            "inbound" => Lang.T("TabInbound"),
+            "outbound" => Lang.T("TabOutbound"),
+            "alarm-management" => Lang.T("TabAlarm"),
+            "device-monitoring" => Lang.T("TabDeviceStatus"),
+            "data-statistics" => Lang.T("TabDataStats"),
+            "" => Lang.T("TabHome"),
             _ => FormatTitle(normalizedPath)
         };
     }
@@ -397,12 +413,11 @@
 
         _disposed = true;
 
-        // 取消所有正在进行的操作
         _cts.Cancel();
         _cts.Dispose();
 
-        // 移除事件处理
         NavigationManager.LocationChanged -= OnLocationChanged;
+        Lang.OnLanguageChanged -= OnLanguageChanged;
 
         try
         {

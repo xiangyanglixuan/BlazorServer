@@ -1,84 +1,87 @@
 ﻿@* Components/Layout/NavMenu.razor *@
 @using Microsoft.AspNetCore.Components.Routing
+@using PlantFactory.Components.Services
+@inject LanguageService Lang
+@implements IDisposable
 
 <div class="nav-container">
     @* 带有二级菜单的项 *@
-    <NavMenuItem Title="库位监测"
+    <NavMenuItem Title="@Lang.T("MenuLocationMonitor")"
                  Icon="fas fa-th-large"
                  IsOpen="@IsSectionOpen("location")"
                  OnToggle="@(() => ToggleSection("location"))"
                  Collapsed="@SidebarCollapsed">
         <NavLink href="/location-monitoring" class="sub-nav">
             <i class="fas fa-circle-notch"></i>
-            <span>库位状态监测</span>
+            <span>@Lang.T("MenuLocationStatus")</span>
         </NavLink>
         <NavLink href="/location-analysis" class="sub-nav">
             <i class="fas fa-chart-bar"></i>
-            <span>库位统计分析</span>
+            <span>@Lang.T("MenuLocationAnalysis")</span>
         </NavLink>
     </NavMenuItem>
 
-    <NavMenuItem Title="环境监测"
+    <NavMenuItem Title="@Lang.T("MenuEnvMonitor")"
                  Icon="fas fa-cloud-sun"
                  IsOpen="@IsSectionOpen("environment")"
                  OnToggle="@(() => ToggleSection("environment"))"
                  Collapsed="@SidebarCollapsed">
         <NavLink href="/air-monitoring" class="sub-nav">
             <i class="fas fa-wind"></i>
-            <span>空气参数监测</span>
+            <span>@Lang.T("MenuAirMonitor")</span>
         </NavLink>
         <NavLink href="/nutrient-monitoring" class="sub-nav">
             <i class="fas fa-tint"></i>
-            <span>营养液监测</span>
+            <span>@Lang.T("MenuNutrientMonitor")</span>
         </NavLink>
     </NavMenuItem>
 
     @* 普通菜单项 *@
-    <NavLink href="/plant-category" class="nav-link" data-title="植物类别管理">
+    <NavLink href="/plant-category" class="nav-link" data-title="@Lang.T("MenuPlantCategory")">
         <i class="fas fa-leaf"></i>
-        <span>植物类别管理</span>
+        <span>@Lang.T("MenuPlantCategory")</span>
     </NavLink>
 
-    <NavLink href="/growth-formula" class="nav-link" data-title="植物生长配方管理">
+    <NavLink href="/growth-formula" class="nav-link" data-title="@Lang.T("MenuGrowthFormula")">
         <i class="fas fa-prescription-bottle"></i>
-        <span>植物生长配方管理</span>
+        <span>@Lang.T("MenuGrowthFormula")</span>
     </NavLink>
 
     @* 带有二级菜单的项 *@
-    <NavMenuItem Title="出入库管理"
+    <NavMenuItem Title="@Lang.T("MenuWarehouse")"
                  Icon="fas fa-warehouse"
                  IsOpen="@IsSectionOpen("warehouse")"
                  OnToggle="@(() => ToggleSection("warehouse"))"
                  Collapsed="@SidebarCollapsed">
         <NavLink href="/inbound" class="sub-nav">
             <i class="fas fa-sign-in-alt"></i>
-            <span>入库管理</span>
+            <span>@Lang.T("MenuInbound")</span>
         </NavLink>
         <NavLink href="/outbound" class="sub-nav">
             <i class="fas fa-sign-out-alt"></i>
-            <span>出库管理</span>
+            <span>@Lang.T("MenuOutbound")</span>
         </NavLink>
     </NavMenuItem>
 
-    <NavMenuItem Title="设备管理"
+    <NavMenuItem Title="@Lang.T("MenuDevice")"
                  Icon="fas fa-cogs"
                  IsOpen="@IsSectionOpen("device")"
                  OnToggle="@(() => ToggleSection("device"))"
                  Collapsed="@SidebarCollapsed">
         <NavLink href="/alarm-management" class="sub-nav">
             <i class="fas fa-exclamation-triangle"></i>
-            <span>设备报警管理</span>
+            <span>@Lang.T("MenuAlarm")</span>
         </NavLink>
         <NavLink href="/device-monitoring" class="sub-nav">
             <i class="fas fa-desktop"></i>
-            <span>设备状态监控(SCADA)</span>
+            <span>@Lang.T("MenuDeviceStatus")</span>
         </NavLink>
     </NavMenuItem>
 
     @* 普通菜单项 *@
-    <NavLink href="/data-statistics" class="nav-link" data-title="数据统计">
+    <NavLink href="/data-statistics" class="nav-link" data-title="@Lang.T("MenuDataStats")">
         <i class="fas fa-chart-line"></i>
-        <span>数据统计</span>
+        <span>@Lang.T("MenuDataStats")</span>
     </NavLink>
 </div>
 
@@ -90,8 +93,7 @@
 
     protected override void OnInitialized()
     {
-        // 初始化时可以默认展开某个菜单
-        // _openSections.Add("location");
+        Lang.OnLanguageChanged += StateHasChanged;
     }
 
     private bool IsSectionOpen(string sectionId)
@@ -101,7 +103,6 @@
 
     private void ToggleSection(string sectionId)
     {
-        // 如果侧边栏收起，不处理点击事件（通过悬停显示子菜单）
         if (SidebarCollapsed) return;
 
         if (_openSections.Contains(sectionId))
@@ -113,5 +114,10 @@
             _openSections.Add(sectionId);
         }
         StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        Lang.OnLanguageChanged -= StateHasChanged;
     }
 }

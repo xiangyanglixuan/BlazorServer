@@ -299,13 +299,9 @@
     {
         if (firstRender)
         {
-            await Task.Delay(500);
-            var pathsCreated = await JSRuntime.InvokeAsync<bool>("createSvgPaths");
-            // 初始化 SVG
+            // 先创建路径再初始化设备
+            await JSRuntime.InvokeVoidAsync("createSvgPaths");
             await JSRuntime.InvokeVoidAsync("initializeSvg");
-
-              // 启动定时更新状态
-            await JSRuntime.InvokeVoidAsync("startStatusUpdate");
         }
-    }   
+    }
 }

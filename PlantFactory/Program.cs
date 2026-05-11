@@ -8,14 +8,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-// 添加服务到容器
+
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-// 注册 SqlHelper 和数据服务
+
 builder.Services.AddSingleton<SqlHelper>();
 builder.Services.AddScoped<PlantService>();
 builder.Services.AddScoped<InBoundService>();
+builder.Services.AddScoped<LanguageService>();
 
 var app = builder.Build();
 

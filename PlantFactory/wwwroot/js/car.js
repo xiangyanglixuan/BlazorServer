@@ -3,7 +3,12 @@ document.documentElement.style.overflowY = "hidden";
 document.documentElement.style.overflowX = "hidden";
 
 // ------------------- 设备状态管理 -------------------
-const deviceStatusMap = new Map();
+// 缓存 mock 数据，避免页面切换后重新生成随机状态
+let deviceStatusMap = window._deviceStatusMap;
+if (!deviceStatusMap) {
+    deviceStatusMap = new Map();
+    window._deviceStatusMap = deviceStatusMap;
+}
 let updateInterval = null;
 
 // 获取状态对应的颜色
@@ -25,8 +30,10 @@ function getStatusColor(status) {
     return colorMap[status] || '#808080';
 }
 
-// 初始化模拟设备状态
+// 初始化模拟设备状态（仅首次运行）
 function initMockDeviceStatus() {
+    if (deviceStatusMap.size > 0) return;
+
     // 小车: 500辆
     for (let i = 1; i <= 500; i++) {
         const statusList = ['待機', '運行', '故障', '掉綫', '急停', '鎖車', '休眠'];
@@ -416,20 +423,31 @@ window.initializeSvg = function () {
     initMockDeviceStatus();
     startStatusUpdate();
     const svgElement = document.getElementById('svg');
+    if (!svgElement) return;
 
-    setTimeout(() => {
-        initCars(svgElement);
-        initGKs(svgElement);
-        initGKs1(svgElement);
-        initLogindesk(svgElement);
-        initLogindesk1(svgElement);
+    // 如果已初始化过（例如页面切换回来后 DOM 被重建），跳过缩放事件重新绑定
+    if (!window._svgEventsBound) {
+        svgElement.addEventListener('wheel', handleWheelZoom);
+        svgElement.addEventListener('mousedown', handleMouseDown);
+        window._svgEventsBound = true;
+    }
 
-        bindAllDeviceTooltips();
-      
-    }, 200);
+    // 恢复上一次的缩放/平移状态
+    if (window._svgTransformState) {
+        state.zoomLevel = window._svgTransformState.zoomLevel;
+        state.translateX = window._svgTransformState.translateX;
+        state.translateY = window._svgTransformState.translateY;
+    }
 
-    svgElement.addEventListener('wheel', handleWheelZoom);
-    svgElement.addEventListener('mousedown', handleMouseDown);
+    // 快速重建 DOM 元素（无论是否为首次都需要，因为 DOM 已被 Blazor 重建）
+    initCars(svgElement);
+    initGKs(svgElement);
+    initGKs1(svgElement);
+    initLogindesk(svgElement);
+    initLogindesk1(svgElement);
+    bindAllDeviceTooltips();
+
+    updateTransform();
 };
 
 // 鼠标缩放拖拽
@@ -493,4 +511,10 @@ function updateTransform() {
     if (svgElement) {
         svgElement.style.transform = `scale(${state.zoomLevel}) translate(${state.translateX}px, ${state.translateY}px)`;
     }
+    // 持久化缩放/平移状态，页面切换回来后可恢复
+    window._svgTransformState = {
+        zoomLevel: state.zoomLevel,
+        translateX: state.translateX,
+        translateY: state.translateY
+    };
 }

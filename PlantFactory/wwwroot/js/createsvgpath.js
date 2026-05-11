@@ -1,4 +1,14 @@
 ﻿window.createSvgPaths = function () {
+    var svg = document.getElementById('svg');
+    if (!svg) return false;
+
+    // 清除上一次可能创建的路径元素，避免重复（DOM 在 Blazor 导航后是全新的，但也要防同页重复调用）
+    var classesToClear = ['line', 'gbt', 'ng', 'nggbt', 'motor', 'collisionmotor',
+        'blun', 'zhix', 'scan', 'safetydoor', 'aconveyorline-label', 'collisionmotor-label'];
+    classesToClear.forEach(function (cls) {
+        var elements = svg.querySelectorAll('.' + cls);
+        elements.forEach(function (el) { el.remove(); });
+    });
 
     var aconveyorline = [
         "GBA01", "GBA0101", "GBA03", "GBA04", "GBA05", "GBA06", "GBA08", "GBA0801", "GBA10", "GBA11",
@@ -408,12 +418,6 @@
         "M220 690 L268 690",
         "M1630 280 L1674 280",
     ];
-
-    const svg = document.getElementById('svg');
-
-    if (!svg) {
-        return false;
-    }
 
     function createPathWithLabel(svg, pathData, labels, className, textClassName, rotateText = false) {
         if (!pathData || !labels || pathData.length !== labels.length) {

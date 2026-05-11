@@ -3,6 +3,8 @@
 @inherits LayoutComponentBase
 @inject NavigationManager Navigation
 @inject IJSRuntime JS
+@inject LanguageService Lang
+@implements IDisposable
 <PageTitle>PlantFactory</PageTitle>
 
 <style>
@@ -375,6 +377,37 @@
         gap: 15px;
     }
 
+    /* 语言切换按钮 */
+    .lang-toggle {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        color: white;
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        white-space: nowrap;
+    }
+
+        .lang-toggle:hover {
+            background: rgba(255, 255, 255, 0.25);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .lang-toggle:active {
+            transform: scale(0.95);
+        }
+
+        .lang-toggle i {
+            font-size: 0.9rem;
+        }
+
     /* 用户信息 */
     .user-info {
         display: flex;
@@ -662,7 +695,7 @@
     <div class="sidebar @(_sidebarCollapsed ? "sidebar-collapsed" : "")">
         <div class="sidebar-header">
             <i class="sidebar-icon fas fa-seedling"></i>
-            <h3>植物工厂系统</h3>
+            <h3>@Lang.T("AppName")</h3>
         </div>
 
         <nav class="sidebar-nav">
@@ -682,11 +715,17 @@
 
                 <!-- 页面标题 -->
                 <div class="page-title">
-                    <span>植物工厂智能监控系统</span>
+                    <span>@Lang.T("PageTitle")</span>
                 </div>
             </div>
 
             <div class="top-bar-right">
+                <!-- 语言切换按钮 -->
+                <button class="lang-toggle" @onclick="ToggleLanguage" title="@(Lang.IsEnglish ? "Switch to Chinese" : "切换到英文")">
+                    <i class="fas fa-globe"></i>
+                    <span>@(Lang.IsEnglish ? "EN" : "中")</span>
+                </button>
+
                 <!-- 用户信息 -->
                 <div class="user-info" @onclick="ToggleUserMenu">
                     <i class="fas fa-user-circle"></i>
@@ -699,8 +738,8 @@
                         <div class="user-dropdown">
                             <div class="dropdown-item" @onclick="OpenUserProfile">
                                 <i class="fas fa-user"></i>
-                                <span>个人中心</span>
-                            </div>                           
+                                <span>@Lang.T("UserCenter")</span>
+                            </div>
                            @*  <div class="dropdown-item">
                                 <i class="fas fa-cog"></i>
                                 <span>系统设置</span>
@@ -708,7 +747,7 @@
                             @* <div class="dropdown-divider"></div> *@
                             <div class="dropdown-item" @onclick="Logout">
                                 <i class="fas fa-sign-out-alt"></i>
-                                <span>退出登录</span>
+                                <span>@Lang.T("Logout")</span>
                             </div>
                         </div>
                     }
@@ -722,7 +761,7 @@
             <div class="modal-overlay" @onclick="CloseUserProfile">
                 <div class="modal-container" @onclick:stopPropagation="true">
                     <div class="modal-header">
-                        <h3><i class="fas fa-user-circle"></i> 个人中心</h3>
+                        <h3><i class="fas fa-user-circle"></i> @Lang.T("UserCenter")</h3>
                         <button class="modal-close" @onclick="CloseUserProfile">
                             <i class="fas fa-times"></i>
                         </button>
@@ -735,14 +774,14 @@
                             <div class="info-row">
                                 <div class="info-label">
                                     <i class="fas fa-user-tag"></i>
-                                    <span>用户名：</span>
+                                    <span>@Lang.T("Username")</span>
                                 </div>
                                 <div class="info-value">@_username</div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">
                                     <i class="fas fa-tag"></i>
-                                    <span>用户角色：</span>
+                                    <span>@Lang.T("UserRole")</span>
                                 </div>
                                 <div class="info-value">
                                     <span class="role-badge">@_userRole</span>
@@ -751,28 +790,28 @@
                             <div class="info-row">
                                 <div class="info-label">
                                     <i class="fas fa-clock"></i>
-                                    <span>登录时间：</span>
+                                    <span>@Lang.T("LoginTime")</span>
                                 </div>
                                 <div class="info-value">@_loginTime</div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">
                                     <i class="fas fa-envelope"></i>
-                                    <span>电子邮箱：</span>
+                                    <span>@Lang.T("Email")</span>
                                 </div>
                                 <div class="info-value">@_email</div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">
                                     <i class="fas fa-phone"></i>
-                                    <span>联系电话：</span>
+                                    <span>@Lang.T("Phone")</span>
                                 </div>
                                 <div class="info-value">@_phone</div>
                             </div>
                             <div class="info-row">
                                 <div class="info-label">
                                     <i class="fas fa-calendar-alt"></i>
-                                    <span>最后登录IP：</span>
+                                    <span>@Lang.T("LastLoginIp")</span>
                                 </div>
                                 <div class="info-value">@_lastLoginIp</div>
                             </div>
@@ -780,13 +819,13 @@
                     </div>
                     <div class="modal-footer">
                         <button class="btn btn-primary" @onclick="EditProfile">
-                            <i class="fas fa-edit"></i> 编辑资料
+                            <i class="fas fa-edit"></i> @Lang.T("EditProfile")
                         </button>
                         <button class="btn btn-secondary" @onclick="ChangePassword">
-                            <i class="fas fa-key"></i> 修改密码
+                            <i class="fas fa-key"></i> @Lang.T("ChangePassword")
                         </button>
                         <button class="btn btn-danger" @onclick="CloseUserProfile">
-                            <i class="fas fa-times"></i> 关闭
+                            <i class="fas fa-times"></i> @Lang.T("Close")
                         </button>
                     </div>
                 </div>
@@ -816,9 +855,13 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // 加载语言偏好
+        await Lang.LoadFromStorage(JS);
+        Lang.OnLanguageChanged += StateHasChanged;
+
         var currentUri = Navigation.Uri;
         var isLoginPage = currentUri.Contains("/login", StringComparison.OrdinalIgnoreCase);
-        
+
         if (!isLoginPage)
         {
             // 只在非登录页检查登录状态
@@ -828,7 +871,7 @@
                 Navigation.NavigateTo("/login", false);
                 return;
             }
-            
+
             // 获取用户信息
             await LoadUserInfo();
         }
@@ -888,24 +931,17 @@
             {
                 role = await JS.InvokeAsync<string>("sessionStorage.getItem", "userRole");
             }
-            
+
             if (string.IsNullOrEmpty(role))
             {
-                if (_username == "admin")
-                    return "超级管理员";
-                else if (_username == "manager")
-                    return "系统管理员";
-                else if (_username == "operator")
-                    return "操作员";
-                else
-                    return "普通用户";
+                return Lang.GetRoleName(_username);
             }
-            
-            return role ?? "系统管理员";
+
+            return role ?? Lang.GetRoleName(_username);
         }
         catch
         {
-            return "系统管理员";
+            return Lang.GetRoleName(_username);
         }
     }
 
@@ -1061,6 +1097,13 @@
         StateHasChanged();
     }
 
+    private async Task ToggleLanguage()
+    {
+        await Lang.ToggleLanguage(JS);
+        _userRole = Lang.GetRoleName(_username);
+        StateHasChanged();
+    }
+
     private void ToggleUserMenu()
     {
         _showUserMenu = !_showUserMenu;
@@ -1077,19 +1120,18 @@
 
         try
         {
-            // 清除所有登录状态
             await JS.InvokeVoidAsync("localStorage.removeItem", "isLoggedIn");
             await JS.InvokeVoidAsync("localStorage.removeItem", "username");
+            await JS.InvokeVoidAsync("localStorage.removeItem", "userRole");
             await JS.InvokeVoidAsync("sessionStorage.removeItem", "isLoggedIn");
             await JS.InvokeVoidAsync("sessionStorage.removeItem", "username");
-
-            // 跳转到登录页
-            Navigation.NavigateTo("/login", true);
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"登出失败：{ex.Message}");
+            Console.WriteLine($"清除登录状态失败：{ex.Message}");
         }
+
+        Navigation.NavigateTo("/login", true);
     }
 
     // 点击其他地方关闭用户菜单
@@ -1099,5 +1141,10 @@
         {
             // 可以添加点击外部关闭菜单的JS交互
         }
+    }
+
+    public void Dispose()
+    {
+        Lang.OnLanguageChanged -= StateHasChanged;
     }
 }
