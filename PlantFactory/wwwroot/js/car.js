@@ -81,6 +81,93 @@ function getStatusDetail(status) {
     return details[status] || '状态正常';
 }
 
+// ------------------- 小车动画系统 -------------------
+const CAR_SPEED = 10;
+const PATH_SAMPLE_STEP = 0.5;
+let pathTotalLength = 0;
+let pathSamples = [];          // [{x, y, angle}] 预采样查找表，避免每帧 getPointAtLength
+let carAnimationData = [];     // [{group, distance}]
+let lastFrameTime = 0;
+let animationId = null;
+
+// 预采样路径：贝塞尔曲线离散化，O(1) 查表替代昂贵的 getPointAtLength
+function samplePath() {
+    const path = document.querySelector('#myPath');
+    if (!path) return false;
+    pathTotalLength = path.getTotalLength();
+    const count = Math.floor(pathTotalLength / PATH_SAMPLE_STEP);
+    pathSamples = new Array(count);
+    for (let i = 0; i < count; i++) {
+        const dist = i * PATH_SAMPLE_STEP;
+        const pt = path.getPointAtLength(dist);
+        const prev = path.getPointAtLength(Math.max(0, dist - PATH_SAMPLE_STEP));
+        pathSamples[i] = {
+            x: pt.x,
+            y: pt.y,
+            angle: Math.atan2(pt.y - prev.y, pt.x - prev.x)
+        };
+    }
+    return true;
+}
+
+// 从采样表线性插值获取坐标和角度
+function getPointAndAngle(dist) {
+    dist = dist % pathTotalLength;
+    if (dist < 0) dist += pathTotalLength;
+    const idx = dist / PATH_SAMPLE_STEP;
+    const i0 = Math.floor(idx) % pathSamples.length;
+    const i1 = (i0 + 1) % pathSamples.length;
+    const frac = idx - Math.floor(idx);
+    const s0 = pathSamples[i0];
+    const s1 = pathSamples[i1];
+    let a0 = s0.angle, a1 = s1.angle;
+    let diff = a1 - a0;
+    while (diff > Math.PI) diff -= 2 * Math.PI;
+    while (diff < -Math.PI) diff += 2 * Math.PI;
+    return {
+        x: s0.x + (s1.x - s0.x) * frac,
+        y: s0.y + (s1.y - s0.y) * frac,
+        angle: a0 + diff * frac
+    };
+}
+
+function startCarAnimation() {
+    if (animationId) return;
+    lastFrameTime = 0;
+    animationId = requestAnimationFrame(animateCars);
+}
+
+function stopCarAnimation() {
+    if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+    }
+}
+
+function animateCars(timestamp) {
+    if (!lastFrameTime) lastFrameTime = timestamp;
+    const deltaTime = Math.min((timestamp - lastFrameTime) / 1000, 0.1);
+    lastFrameTime = timestamp;
+
+    if (carAnimationData.length === 0 || pathSamples.length === 0) {
+        animationId = requestAnimationFrame(animateCars);
+        return;
+    }
+
+    for (let i = 0; i < carAnimationData.length; i++) {
+        const cd = carAnimationData[i];
+        cd.distance += CAR_SPEED * deltaTime;
+        if (cd.distance >= pathTotalLength) cd.distance -= pathTotalLength;
+
+        const pa = getPointAndAngle(cd.distance);
+        // 只改 group 的 transform，子元素不动——每车每帧仅 1 次 DOM 写入
+        cd.group.setAttribute('transform',
+            'translate(' + pa.x.toFixed(1) + ',' + pa.y.toFixed(1) + ') rotate(' + (pa.angle * 180 / Math.PI).toFixed(1) + ')');
+    }
+
+    animationId = requestAnimationFrame(animateCars);
+}
+
 // 随机更新部分设备状态（模拟实时变化）
 function randomUpdateStatus() {
     const allDevices = Array.from(deviceStatusMap.keys());
@@ -198,53 +285,48 @@ function bindAllDeviceTooltips() {
     }
 }
 
-// 初始化SVG设备
+// 初始化SVG小车（组合变换：位置和旋转全在 <g> 上，子元素相对定位不变）
 function initCars(svg) {
-    const path = document.querySelector('#myPath');
-    if (!path) return;
+    if (pathSamples.length === 0) return;
 
-    const pathLength = path.getTotalLength();
     const numCars = 500;
-    const carSpacing = pathLength / numCars;
+    const carSpacing = pathTotalLength / numCars;
+
+    carAnimationData = [];
 
     for (let i = 0; i < numCars; i++) {
+        const distance = i * carSpacing;
+        const pa = getPointAndAngle(distance);
+
         const carGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        carGroup.setAttribute('transform',
+            'translate(' + pa.x.toFixed(1) + ',' + pa.y.toFixed(1) + ') rotate(' + (pa.angle * 180 / Math.PI).toFixed(1) + ')');
+
         const car = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         car.setAttributeNS(null, 'class', 'car');
         car.setAttributeNS(null, 'width', '15');
         car.setAttributeNS(null, 'height', '30');
+        car.setAttributeNS(null, 'x', '-7.5');
+        car.setAttributeNS(null, 'y', '-15');
 
-        const statusData = deviceStatusMap.get(`car${i + 1}`);
+        const statusData = deviceStatusMap.get('car' + (i + 1));
         const fillColor = getStatusColor(statusData ? statusData.status : '待機');
         car.setAttributeNS(null, 'fill', fillColor);
         car.setAttributeNS(null, 'rx', '3');
         car.setAttributeNS(null, 'ry', '3');
+        car.setAttributeNS(null, 'id', 'car' + (i + 1));
 
         const carLabel = document.createElementNS("http://www.w3.org/2000/svg", "text");
         carLabel.setAttributeNS(null, 'class', 'car-label');
+        carLabel.setAttributeNS(null, 'x', '-4.5');
+        carLabel.setAttributeNS(null, 'y', '-4');
         carLabel.textContent = (i + 1).toString().padStart(3, '0');
 
-        try {
-            const point = path.getPointAtLength(i * carSpacing);
-            const prevPoint = path.getPointAtLength(Math.max(0, (i - 1) * carSpacing));
-            const tangentAngle = Math.atan2(point.y - prevPoint.y, point.x - prevPoint.x);
-            const rotation = tangentAngle * 180 / Math.PI;
+        carGroup.appendChild(car);
+        carGroup.appendChild(carLabel);
+        svg.appendChild(carGroup);
 
-            car.setAttributeNS(null, 'x', point.x - 7.5);
-            car.setAttributeNS(null, 'y', point.y - 15);
-            car.setAttributeNS(null, 'transform', `rotate(${rotation}, ${point.x}, ${point.y})`);
-            car.setAttributeNS(null, 'id', `car${i + 1}`);
-
-            carLabel.setAttributeNS(null, 'x', point.x - 4.5);
-            carLabel.setAttributeNS(null, 'y', point.y - 4);
-            carLabel.setAttributeNS(null, 'transform', `rotate(${rotation}, ${point.x}, ${point.y})`);
-
-            carGroup.appendChild(car);
-            carGroup.appendChild(carLabel);
-            svg.appendChild(carGroup);
-        } catch (error) {
-            console.error('Error creating car:', i, error);
-        }
+        carAnimationData.push({ group: carGroup, distance: distance });
     }
 }
 
@@ -440,12 +522,15 @@ window.initializeSvg = function () {
     }
 
     // 快速重建 DOM 元素（无论是否为首次都需要，因为 DOM 已被 Blazor 重建）
+    samplePath();
+    stopCarAnimation();
     initCars(svgElement);
     initGKs(svgElement);
     initGKs1(svgElement);
     initLogindesk(svgElement);
     initLogindesk1(svgElement);
     bindAllDeviceTooltips();
+    startCarAnimation();
 
     updateTransform();
 };

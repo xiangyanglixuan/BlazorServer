@@ -728,14 +728,14 @@
         if (string.IsNullOrWhiteSpace(username))
         {
             _usernameError = true;
-            _usernameErrorMessage = "请输入用户名";
+            _usernameErrorMessage = Lang.T("UsernameRequired");
             isValid = false;
         }
 
         if (string.IsNullOrWhiteSpace(password))
         {
             _passwordError = true;
-            _passwordErrorMessage = "请输入密码";
+            _passwordErrorMessage = Lang.T("PasswordRequired");
             isValid = false;
         }
 
@@ -776,7 +776,7 @@
             {
                 // 登录失败
                 _passwordError = true;
-                _passwordErrorMessage = "用户名或密码错误";
+                _passwordErrorMessage = Lang.T("InvalidCredentials");
                 _isLoggingIn = false;
                 StateHasChanged();
             }
@@ -784,7 +784,7 @@
         catch (Exception ex)
         {
             _passwordError = true;
-            _passwordErrorMessage = $"登录失败：{ex.Message}";
+            _passwordErrorMessage = Lang.T("LoginFailed");
             _isLoggingIn = false;
             StateHasChanged();
         }
