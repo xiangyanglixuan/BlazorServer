@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dotnet build *)",
+      "Bash(git push *)",
+      "Bash(git submodule *)",
+      "Bash(git mv *)",
+      "Bash(powershell.exe -Command \"Remove-Item -Path 'D:\\\\工作文件\\\\成都冷库\\\\BlazorServer\\\\.vs' -Recurse -Force -ErrorAction SilentlyContinue\")",
+      "Bash(dotnet add *)",
+      "Bash(iisreset *)",
+      "Bash(dotnet *)",
+      "Bash(reg query *)",
+      "Bash(sc query *)",
+      "Bash(dism *)",
+      "Bash(powershell *)",
+      "Bash(dir \"C:\\\\Windows\\\\System32\\\\inetsrv\\\\aspnetcore.dll\")",
+      "Bash(dir \"C:\\\\Program Files\\\\IIS\\\\Asp.Net Core Module\\\\V2\\\\aspnetcorev2.dll\")",
+      "Bash(winget search *)",
+      "WebSearch",
+      "Bash(curl *)",
+      "Bash(start *)",
+      "Bash(git remote *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}

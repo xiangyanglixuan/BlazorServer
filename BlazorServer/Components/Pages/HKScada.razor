@@ -1,0 +1,113 @@
+@page "/HKScada"
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<style>
+    .scada-wrap {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .scada-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+    .scada-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+    .alarm-row {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    .alarm-badge {
+        font-size: 12px;
+        padding: 3px 10px;
+        border-radius: 4px;
+        font-weight: 600;
+        color: #fff;
+    }
+    .alarm-badge.sts-1 { background: #374151; }
+    .alarm-badge.sts-2 { background: #eab308; color: #333; }
+    .alarm-badge.sts-3 { background: #3b82f6; }
+    .alarm-badge.sts-4 { background: #a855f7; }
+    .alarm-badge.sts-5 { background: #22c55e; }
+    .alarm-badge.sts-6 { background: #9ca3af; }
+
+    .svg-area {
+        flex: 1;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+        background: #fafafa;
+        overflow: auto;
+        min-height: 300px;
+    }
+    .svg-area svg {
+        display: block;
+        min-width: 1400px;
+        height: auto;
+    }
+
+    .line { fill: none; stroke: #9ca3af; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; }
+    .line.sts-1 { stroke: #374151; }
+    .line.sts-2 { stroke: #eab308; }
+    .line.sts-3 { stroke: #3b82f6; }
+    .line.sts-4 { stroke: #a855f7; }
+    .line.sts-5 { stroke: #22c55e; }
+    .line.sts-6 { stroke: #9ca3af; }
+
+    .aconveyorline-label {
+        fill: #000;
+        font-size: 8px;
+        font-family: Consolas, monospace;
+    }
+</style>
+
+<div class="scada-wrap">
+    <div class="scada-header">
+        <h3>HK 线体监控</h3>
+        <div class="alarm-row">
+            <span class="alarm-badge sts-1" id="hkbadgeSts1">断电 0</span>
+            <span class="alarm-badge sts-2" id="hkbadgeSts2">故障 0</span>
+            <span class="alarm-badge sts-3" id="hkbadgeSts3">堵货 0</span>
+            <span class="alarm-badge sts-4" id="hkbadgeSts4">超时故障 0</span>
+            <span class="alarm-badge sts-5" id="hkbadgeSts5">运行 0</span>
+            <span class="alarm-badge sts-6" id="hkbadgeSts6">停止 0</span>
+        </div>
+    </div>
+
+    <div class="svg-area">
+        <svg id="svgHkScada" viewBox="0 180 1920 1300" preserveAspectRatio="xMidYMin meet"></svg>
+    </div>
+</div>
+
+@code {
+    private bool _initialized;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_initialized)
+        {
+            _initialized = true;
+            await JS.InvokeVoidAsync("scada.initHkSvgFlow", "svgHkScada");
+            await JS.InvokeVoidAsync("scada.startPolling");
+        }
+    }
+
+    async ValueTask IAsyncDisposable.DisposeAsync()
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("scada.stopPolling");
+        }
+        catch { }
+    }
+}

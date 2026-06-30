@@ -1,0 +1,49 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <link rel="stylesheet" href="bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="app.css" />
+    <link rel="stylesheet" href="fontawesome-free-5.15.4-web/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/js/scada.js"></script>
+    <link rel="stylesheet" href="css/scada.css" />
+    <link rel="stylesheet" href="BlazorServer.styles.css" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+    <HeadOutlet @rendermode="InteractiveServer" />
+</head>
+
+<body>
+    <Routes @rendermode="InteractiveServer" />
+    <script src="_framework/blazor.web.js"></script>
+   @*  <script>
+                window.sidebar = {
+            initHoverMenu: function() {
+                const menuItems = document.querySelectorAll('.sidebar-collapsed .nav-menu-item');
+                let hideTimeout;
+
+                menuItems.forEach(item => {
+                    item.addEventListener('mouseenter', function() {
+                        clearTimeout(hideTimeout);
+                        this.classList.add('hovering');
+                    });
+
+                    item.addEventListener('mouseleave', function(e) {
+                        const self = this;
+                        // 延迟关闭子菜单，防止鼠标移动到子菜单时关闭
+                        hideTimeout = setTimeout(() => {
+                            if (!self.contains(document.activeElement)) {
+                                self.classList.remove('hovering');
+                            }
+                        }, 300);
+                    });
+                });
+            }
+        };
+    </script> *@
+</body>
+
+</html>

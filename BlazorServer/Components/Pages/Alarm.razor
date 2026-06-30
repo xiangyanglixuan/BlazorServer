@@ -1,0 +1,222 @@
+@page "/Alarm"
+@using BlazorServer.Models
+@using BlazorServer.Services
+@inject AlarmService AlarmSvc
+
+<style>
+    .alarm-page {
+        background: #fff;
+        border-radius: 8px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        height: calc(100vh - 100px);
+    }
+    .alarm-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-shrink: 0;
+    }
+    .alarm-header h3 {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 600;
+        color: #333;
+    }
+    .search-box input {
+        padding: 6px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 13px;
+        width: 240px;
+        outline: none;
+    }
+    .search-box input:focus { border-color: #3b82f6; }
+
+    .table-wrap {
+        flex: 1;
+        overflow: auto;
+        border: 1px solid #e5e7eb;
+        border-radius: 6px;
+    }
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+    }
+    thead { position: sticky; top: 0; z-index: 1; }
+    th {
+        background: #f3f4f6;
+        padding: 10px 12px;
+        text-align: left;
+        font-weight: 600;
+        color: #374151;
+        border-bottom: 2px solid #d1d5db;
+        white-space: nowrap;
+    }
+    td {
+        padding: 8px 12px;
+        border-bottom: 1px solid #e5e7eb;
+        color: #333;
+    }
+    tbody tr:hover { background: #f9fafb; }
+
+    .sts-badge {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 3px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+    }
+    .sts-badge.sts-1 { background: #374151; }
+    .sts-badge.sts-2 { background: #eab308; color: #333; }
+    .sts-badge.sts-3 { background: #3b82f6; }
+    .sts-badge.sts-4 { background: #a855f7; }
+    .sts-badge.sts-5 { background: #22c55e; }
+    .sts-badge.sts-6 { background: #9ca3af; }
+
+    .recovered { color: #22c55e; font-weight: 600; }
+    .not-recovered { color: #ef4444; font-weight: 600; }
+
+    .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        flex-shrink: 0;
+        padding-top: 4px;
+    }
+    .pagination button {
+        padding: 4px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+        font-size: 13px;
+    }
+    .pagination button:hover { background: #f3f4f6; }
+    .pagination button.active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+    .pagination button:disabled { opacity: 0.4; cursor: default; }
+    .pagination .page-info { font-size: 13px; color: #666; }
+</style>
+
+<div class="alarm-page">
+    <div class="alarm-header">
+        <h3>报警记录</h3>
+        <div class="search-box">
+            <input type="text" placeholder="搜索设备编号或故障详情..." @bind="searchText" @onkeyup="OnSearchKeyUp" />
+            <button style="margin-left:8px;padding:6px 12px;border-radius:4px;cursor:pointer;" @onclick="Search">搜索</button>
+        </div>
+    </div>
+
+    <div class="table-wrap">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:60px">ID</th>
+                    <th style="width:110px">设备编号</th>
+                    <th>故障详情</th>
+                    <th style="width:90px">设备状态</th>
+                    <th style="width:80px">是否恢复</th>
+                    <th style="width:160px">报警时间</th>
+                    <th style="width:160px">恢复时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (records.Count == 0)
+                {
+                    <tr><td colspan="7" style="text-align:center;color:#999;padding:40px">暂无报警记录</td></tr>
+                }
+                else
+                {
+                    @foreach (var r in records)
+                    {
+                        <tr>
+                            <td>@r.Id</td>
+                            <td style="font-weight:600">@r.DeviceNumber</td>
+                            <td>@r.FaultDetail</td>
+                            <td><span class="sts-badge sts-@r.DeviceStatus">@r.StatusText</span></td>
+                            <td>
+                                @if (r.IsRecovered)
+                                {
+                                    <span class="recovered">已恢复</span>
+                                }
+                                else
+                                {
+                                    <span class="not-recovered">未恢复</span>
+                                }
+                            </td>
+                            <td>@r.AlarmTime.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@(r.RecoveryTime?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-")</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        <button disabled="@(page <= 1)" @onclick="() => GoToPage(page - 1)">上一页</button>
+        @for (int i = 1; i <= totalPages && i <= 9; i++)
+        {
+            <button class="@(i == page ? "active" : "")" @onclick="() => GoToPage(i)">@i</button>
+        }
+        @if (totalPages > 9)
+        {
+            <span class="page-info">... @totalPages</span>
+        }
+        <button disabled="@(page >= totalPages)" @onclick="() => GoToPage(page + 1)">下一页</button>
+        <span class="page-info">共 @total 条 / @totalPages 页</span>
+    </div>
+</div>
+
+@code {
+    private List<AlarmRecord> records = new();
+    private int page = 1;
+    private int pageSize = 15;
+    private int total;
+    private int totalPages => Math.Max(1, (int)Math.Ceiling((double)total / pageSize));
+    private string searchText = "";
+    private Timer? _refreshTimer;
+
+    protected override void OnInitialized()
+    {
+        LoadData();
+        _refreshTimer = new Timer(async _ => { await LoadData(); await InvokeAsync(StateHasChanged); },
+            null, TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(2));
+    }
+
+    private async Task LoadData()
+    {
+        var search = string.IsNullOrWhiteSpace(searchText) ? null : searchText;
+        var (list, t) = await Task.Run(() => AlarmSvc.GetPaged(page, pageSize, search));
+        records = list;
+        total = t;
+    }
+
+    private async Task Search()
+    {
+        page = 1;
+        await LoadData();
+    }
+
+    private async Task OnSearchKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Search();
+    }
+
+    private async Task GoToPage(int p)
+    {
+        if (p < 1 || p > totalPages) return;
+        page = p;
+        await LoadData();
+    }
+
+    public void Dispose()
+    {
+        _refreshTimer?.Dispose();
+    }
+}
